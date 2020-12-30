@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../../dist/vapaee/rex",
+  "lib": {
+    "entryFile": "src/index.ts",
+    "umdModuleIds": {
+      "@vapaee/feedback": "vapaee.feedback",
+      "@vapaee/scatter": "vapaee.scatter"
+    }    
+  }
+}

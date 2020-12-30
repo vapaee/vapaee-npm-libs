@@ -1,0 +1,26 @@
+
+- crear lib @vapaee/wallet
+  - API: inspirarse en el actual scatter pero sacar lo deprecado y referente a Scatter
+  - añadir el concepto de indentity-provider (Scatter, Local, ParentFrame)
+- crear lib @vapaee/idp-scatter
+- crear lib @vapaee/idp-local
+- crear lib @vapaee/idp-pframe
+  - investigar: https://github.com/EOSDAQ/eosdaq-embed/blob/master/eosdaq.js
+  - code /home/viter/Descargas/Telegram\ Desktop/Newdex-Embed-API.txt
+
+
+- lista de funciones q se van de eos-connexion.class y pasan al id-provider
+  - assertContext()
+  - createRPC()
+  - assertConnected(func:string)
+  - connectToScatter(appname: string)
+  - connect(appname:string)
+  - sendTransaction(trx: Transaction)
+  - setIdentity(identity:any)
+  - resetIdentity()
+  - extractEosconfig(index: number)
+  - login()
+  - logout()
+  - autologin()
+
+  
