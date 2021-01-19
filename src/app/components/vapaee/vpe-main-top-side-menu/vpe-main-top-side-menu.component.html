@@ -1,0 +1,49 @@
+<!-- 
+    [mode]="(isHandset$ | async) ? 'over' : 'side'"
+-->
+<mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav [position]="ctrl.position" class="sidenav" fixedInViewport
+        [attr.role]="ctrl.attr_role"
+        [mode]="ctrl.mode"
+        [(opened)]="ctrl.opened"
+        >
+        
+        <mat-toolbar>Menu</mat-toolbar>
+        <mat-nav-list>
+            <a
+                *ngFor="let entry of ctrl.menu"
+                mat-list-item
+                (click)="onEntryClicked(entry)"
+                >{{entry.long}}</a>
+          
+        </mat-nav-list>
+    </mat-sidenav>
+    <mat-sidenav-content #content>
+        <mat-toolbar color="primary" class="ion-justify-content-between">
+            <div class="brand" style="background-image: url({{ctrl.logo}});">&nbsp;</div>
+            <div class="menu" *ngIf="!ctrl.showbtn">
+                <button
+                    position="end"
+                    type="button"
+                    (click)="onEntryClicked(entry)"
+                    *ngFor="let entry of ctrl.menu"
+                    color="warn"
+                    mat-raised-button
+                    >{{entry.short}}</button>
+            </div>
+            <button
+                position="end"
+                type="button"
+                aria-label="Toggle sidenav"
+                mat-icon-button
+                (click)="sidenav.toggle()"
+                *ngIf="ctrl.showbtn">
+                <mat-icon aria-label="Side nav toggle icon">menu</mat-icon>
+            </button>
+          
+        </mat-toolbar>
+        <div class="page-container">
+            <ng-content></ng-content>
+        </div>
+    </mat-sidenav-content>
+</mat-sidenav-container>

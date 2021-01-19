@@ -1,5 +1,5 @@
 //*
-export * from './src/lib/feedback.service';
+export * from './src/lib/feedback.class';
 /*/
 export * from '@vapaee/feedback';
 //*/

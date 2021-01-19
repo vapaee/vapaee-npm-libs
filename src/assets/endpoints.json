@@ -1,0 +1,38 @@
+{
+    "eos": {
+        "name": "EOS",
+        "symbol": "EOS",
+        "explorer": "https://www.bloks.io",
+        "chainId":"aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906",
+        "endpoints": [
+        {
+            "protocol":"https",
+            "host":"eos.greymass.com",
+            "port":443
+        }]
+    }, 
+    "wax": {
+        "name": "WAX",
+        "symbol": "WAX",
+        "explorer": "https://wax.bloks.io",
+        "chainId":"1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4",
+        "endpoints":[
+        {
+            "protocol":"https",
+            "host":"wax.greymass.com",
+            "port":443
+        }]
+    }, 
+    "telos": {
+        "name": "TELOS",
+        "symbol": "TLOS",
+        "explorer": "https://telos.bloks.io",
+        "chainId":"4667b205c6838ef70ff7988f6e8257e8be0e1284a2f59699054a018f743b1d11",
+        "endpoints":[
+        {
+            "protocol":"https",
+            "host":"telos.greymass.com",
+            "port":443
+        }]
+    }
+}

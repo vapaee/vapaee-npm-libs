@@ -1,0 +1,262 @@
+<div class="ion-padding container">
+    <h1>wallet Page</h1>
+
+
+    <mat-card class="ion-margin-top" *ngIf="false">
+        <mat-card-content>
+            <pre> keymanager.passwordRequest : {{keymanager.passwordRequest|json}} </pre>
+            <pre> keymanager.accountRequest : {{keymanager.accountRequest|json}} </pre>
+            <pre> keymanager.identities : {{keymanager.identities|json}} </pre>
+            <pre> keymanager.logged : {{keymanager.logged|json}} </pre>
+        </mat-card-content>
+    </mat-card>
+
+    <mat-card class="ion-margin-top" *ngIf="!keymanager.registered">
+        <mat-card-content>
+            <h1>Not registered</h1>
+
+            <mat-form-field>
+                <input  [(ngModel)]="password" matInput placeholder="password">
+            </mat-form-field>
+            
+            <button class="ml-2" color="warn" (click)="register()" mat-raised-button>
+                Register
+            </button>
+            
+        </mat-card-content>
+    </mat-card>
+
+    <mat-card class="ion-margin-top" *ngIf="keymanager.registered && keymanager.passwordRequest">
+        <mat-card-content>
+            <h1>Enter Password</h1>
+
+            <mat-form-field>
+                <input  [(ngModel)]="password" matInput placeholder="password">
+            </mat-form-field>
+            
+            <button class="ml-2" color="warn" (click)="verify()" mat-raised-button>
+                Verify
+            </button>
+
+            <button class="ml-2" color="primary" (click)="cancel()" mat-raised-button>
+                Cancel
+            </button>
+            
+        </mat-card-content>
+    </mat-card>    
+
+    <mat-card class="ion-margin-top" *ngIf="!keymanager.passwordRequest && keymanager.registered && keymanager.accountRequest">
+        <mat-card-content>
+            <h1>Account Selection</h1>
+
+            <mat-list>
+
+                <mat-list-item class="mt-2" *ngFor="let identity of keymanager.identities">
+                    <h3 matLine>{{identity.name}}</h3>
+
+                    <p matLine class="text-right">
+                        <mat-form-field>
+                            <input  [(ngModel)]="key" matInput placeholder="Private Key">
+                        </mat-form-field>
+                        <button *ngIf="!key" class="ml-2" color="warn" (click)="generateKey()" mat-raised-button>
+                            Generate
+                        </button>
+                        <button class="ml-2" color="warn" (click)="enterPrivateKey(identity.name,key)" mat-raised-button>
+                            Enter Key
+                        </button>
+                    </p>
+
+                    <p matLine *ngFor="let account of identity.accounts">
+                        <mat-label>[{{account.slug}}] - {{account.name}}@{{account.authority}}</mat-label>
+                        <button 
+                            *ngIf="keymanager.accountRequest == account.slug"
+                            class="ml-auto" color="accent" (click)="loginAs(identity.name, account)" mat-button>
+                            login
+                        </button>
+                    </p>
+                </mat-list-item>
+
+                <mat-divider></mat-divider>
+
+                <mat-list-item class="mt-2">
+                    
+                        <div class="col-10">
+                            <mat-form-field>
+                                <input  [(ngModel)]="id_name" matInput placeholder="Identity Name">
+                            </mat-form-field>
+                            <button class="ml-2" color="warn" (click)="createIdentity()" mat-raised-button>
+                                Create Identiry    
+                            </button>             
+                        </div>
+                        <div class="col-2 text-right">
+                            <button color="primary" (click)="cancelAccountSelection()" mat-raised-button>
+                                Cancel
+                            </button>  
+                        </div>
+                    
+                          
+                </mat-list-item>
+
+            </mat-list>
+            
+        </mat-card-content>
+    </mat-card>
+
+
+    <mat-card class="ion-margin-top">
+        <mat-card-content>
+            <mat-list>
+
+                <mat-list-item>
+                    <button color="warn" (click)="debug()" mat-raised-button>
+                        Debug
+                    </button>         
+                </mat-list-item>
+        
+                <mat-divider></mat-divider>
+        
+                <mat-list-item>
+                    <button color="primary" *ngIf="!wallet.connexion.telos?.logged" (click)="tryToConnect('telos')" mat-raised-button>
+                        Connect to Telos
+                    </button>
+                    <div *ngIf="wallet.connexion.telos?.logged">
+                        <span (click)="disconnectFrom('telos')" mat-elevation-z2>
+                            Connected to Telos as {{wallet.connexion.telos.account.name}}
+                        </span>
+                        
+                        <button color="accent" (click)="wallet.connexion.telos.logout()" mat-raised-button>
+                            logout
+                        </button>
+                        
+                        <button color="warn" (click)="wallet.connexion.telos.print()" mat-raised-button>
+                            print
+                        </button>
+        
+                        <button color="primary" (click)="aux_transaction('telos')" mat-raised-button>
+                            transaction
+                        </button>
+                    </div>
+                    
+                </mat-list-item>
+        
+                <mat-divider></mat-divider>
+        
+                <mat-list-item>
+                    <button color="primary" *ngIf="!wallet.connexion.eos?.logged" (click)="tryToConnect('eos')" mat-raised-button>
+                        Connect to EOS
+                    </button>
+                    <div *ngIf="wallet.connexion.eos?.logged">
+                        <span (click)="disconnectFrom('eos')" mat-elevation-z2>
+                            Connected to EOS as {{wallet.connexion.eos.account.name}}
+                        </span>
+        
+                        <button color="accent" (click)="wallet.connexion.eos.logout()" mat-raised-button>
+                            logout
+                        </button>
+        
+                        <button color="warn" (click)="wallet.connexion.eos.print()" mat-raised-button>
+                            print
+                        </button>
+        
+                        <button color="primary" (click)="aux_transaction('eos')" mat-raised-button>
+                            transaction
+                        </button>
+        
+                    </div>
+                </mat-list-item>
+        
+            </mat-list>
+        </mat-card-content>
+
+    </mat-card>
+
+    <mat-card class="ion-margin-top">
+
+        <ion-grid class="d-inline-block">
+            <ion-row *ngIf="wallet.feed.loadings?.endpoints">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">wallet Endponits </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="primary" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+            <ion-row *ngIf="wallet.feed.loadings?.connexion">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">wallet Connecting </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="accent" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+
+            <ion-row *ngIf="wallet.connexion.telos?.feed.loadings?.transaction">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">Telos Transaction </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="primary" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+            <ion-row *ngIf="wallet.connexion.telos?.feed.loadings?.login">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">Telos Login </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="warn" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+            <ion-row *ngIf="wallet.connexion.telos?.feed.loadings?.connecting">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">Telos Connecting </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="accent" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+            
+            <ion-row *ngIf="wallet.connexion.eos?.feed.loadings?.transaction">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">EOS Transaction </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="primary" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+            <ion-row *ngIf="wallet.connexion.eos?.feed.loadings?.login">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">EOS Login </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="warn" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>
+            <ion-row *ngIf="wallet.connexion.eos?.feed.loadings?.connecting">
+                <ion-col class="text-nowrap">
+                    <span class="ion-margin-left">EOS Connecting </span>
+                </ion-col>
+                <ion-col>
+                    <mat-spinner color="accent" diameter="20"></mat-spinner>
+                </ion-col>
+            </ion-row>            
+        </ion-grid>
+
+    </mat-card>
+    <mat-card class="ion-margin-top">
+        <mat-card-title>Loading flags</mat-card-title>
+        <mat-card-subtitle >wallet feed</mat-card-subtitle>
+        <mat-card-content>
+            <pre>{{wallet.feed|json}}</pre>
+        </mat-card-content>
+        <mat-card-subtitle *ngIf="wallet.connexion.telos">Telos feed</mat-card-subtitle>
+        <mat-card-content *ngIf="wallet.connexion.telos">
+            <pre>{{wallet.connexion.telos.feed|json}}</pre>
+        </mat-card-content>
+        <mat-card-subtitle *ngIf="wallet.connexion.eos">EOS feed</mat-card-subtitle>
+        <mat-card-content *ngIf="wallet.connexion.eos">
+            <pre>{{wallet.connexion.eos.feed|json}}</pre>
+        </mat-card-content>
+    </mat-card>
+    
+    
+</div>

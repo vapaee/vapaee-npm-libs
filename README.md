@@ -6,9 +6,11 @@ Current version: v1.0.0
 
 ### @vapaee/feedback
 
-### @vapaee/style
+### @vapaee/wallet
 
-### @vapaee/scatter
+### @vapaee/idp-scatter
+
+### @vapaee/style
 
 ### @vapaee/dex
 
@@ -17,5 +19,5 @@ Current version: v1.0.0
 ## Install
 
 ```bash
-npm i @vapaee/feedback @vapaee/style @vapaee/scatter @vapaee/dex @vapaee/rex --save
+npm i @vapaee/feedback @vapaee/style @vapaee/wallet @vapaee/idp-scatter @vapaee/dex @vapaee/rex --save
 ```

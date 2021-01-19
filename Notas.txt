@@ -1,26 +1,175 @@
-
-- crear lib @vapaee/wallet
-  - API: inspirarse en el actual scatter pero sacar lo deprecado y referente a Scatter
-  - añadir el concepto de indentity-provider (Scatter, Local, ParentFrame)
-- crear lib @vapaee/idp-scatter
++ crear lib @vapaee/wallet
+  + API: inspirarse en el actual scatter pero sacar lo deprecado y referente a Scatter
+  + añadir el concepto de indentity-provider (Scatter, Local, ParentFrame)
++ crear lib @vapaee/idp-scatter
 - crear lib @vapaee/idp-local
 - crear lib @vapaee/idp-pframe
-  - investigar: https://github.com/EOSDAQ/eosdaq-embed/blob/master/eosdaq.js
-  - code /home/viter/Descargas/Telegram\ Desktop/Newdex-Embed-API.txt
+  + investigar: https://github.com/EOSDAQ/eosdaq-embed/blob/master/eosdaq.js
+  + code /home/viter/Descargas/Telegram\ Desktop/Newdex-Embed-API.txt
 
 
-- lista de funciones q se van de eos-connexion.class y pasan al id-provider
-  - assertContext()
-  - createRPC()
-  - assertConnected(func:string)
-  - connectToScatter(appname: string)
-  - connect(appname:string)
-  - sendTransaction(trx: Transaction)
-  - setIdentity(identity:any)
-  - resetIdentity()
-  - extractEosconfig(index: number)
-  - login()
-  - logout()
-  - autologin()
+eos / telos
+https://api.light.xeos.me/api/key/EOS7JYMQL2QE8XLYqoEwHgAhbhdf3nhZFnCpeRrdRyLVTWUcBza9N
 
-  
+jungle
+https://lightapi.eosgeneva.io/api/key/EOS7JYMQL2QE8XLYqoEwHgAhbhdf3nhZFnCpeRrdRyLVTWUcBza9N
+
+bos / wax / proton
+https://lightapi.eosamsterdam.net/api/key/EOS7JYMQL2QE8XLYqoEwHgAhbhdf3nhZFnCpeRrdRyLVTWUcBza9N
+
+https://hyperion.coffe.io/api/key/EOS7JYMQL2QE8XLYqoEwHgAhbhdf3nhZFnCpeRrdRyLVTWUcBza9N
+
+
+
+{
+  processed: {
+    account_ram_delta: null
+    action_traces: (2) [{…}, {…}]
+    block_num: 132249655
+    block_time: "2021-01-18T23:38:39.000"
+    elapsed: 957
+    error_code: null
+    except: null
+    id: "b6bd3633e323d6b033e22cdce3f9c06611bd7f36ee6677d14e6ef9bf902d068b"
+    net_usage: 208
+    producer_block_id: null
+    receipt: {status: "executed", cpu_usage_us: 957, net_usage_words: 26}
+    scheduled: false
+  },
+  transaction_id: "b6bd3633e323d6b033e22cdce3f9c06611bd7f36ee6677d14e6ef9bf902d068b"
+}
+
+
+
+
+
+
+
+
+
+ - rpc -
+endpoint                                string
+fetchBuiltin                                function
+fetch                                function
+get_abi                                function
+get_account                                function
+get_block_header_state                                function
+get_block                                function
+get_code                                function
+get_currency_balance                                function
+get_currency_stats                                function
+get_info                                function
+get_producer_schedule                                function
+get_producers                                function
+get_raw_code_and_abi                                function
+getRawAbi                                function
+get_scheduled_transactions                                function
+get_table_rows                                function
+get_table_by_scope                                function
+getRequiredKeys                                function
+push_transaction                                function
+send_transaction                                function
+db_size_get                                function
+history_get_actions                                function
+history_get_transaction                                function
+history_get_key_accounts                                function
+history_get_controlled_accounts                                function
+
+- api -
+contracts                        object
+cachedAbis                        object
+rpc                        object
+authorityProvider                        object
+abiProvider                        object
+signatureProvider                        object
+chainId                        undefined
+textEncoder                        undefined
+textDecoder                        undefined
+abiTypes                        object
+transactionTypes                        object
+rawAbiToJson                        function
+jsonToRawAbi                        function
+getCachedAbi                        function
+getAbi                        function
+getTransactionAbis                        function
+getContract                        function
+serialize                        function
+deserialize                        function
+serializeTransaction                        function
+serializeContextFreeData                        function
+deserializeTransaction                        function
+serializeActions                        function
+deserializeActions                        function
+deserializeTransactionWithActions                        function
+deflateSerializedArray                        function
+inflateSerializedArray                        function
+transact                        function
+pushSignedTransaction                        function
+pushCompressedSignedTransaction                        function
+generateTapos                        function
+hasRequiredTaposFields                        function
+tryGetBlockHeaderState                        function
+eos-connexion.class.ts:286 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  --- Uso actual de scatter --
+    // ------
+    await this.scatter.init("assets/endpoints.json");
+    // ------
+    this.connexion = await this.scatter.createConnexion(this.network);
+    this.connexion.connect(appname).catch(e => {
+        console.error(e);
+    });
+
+    this.connexion.waitConnected.then(() => this.updateLogState() );
+    this.telosbookdex = this.connexion.getContract(telosbookdex);
+    this.vapaeetokens = this.connexion.getContract(vapaeetokens);
+    
+    this.connexion.telos.autologin();
+
+    // ------
+    this.telosbookdex.excecute("order", {
+        owner:  this.connexion.account.name,
+        type: type,
+        total: amount.toString(8),
+        price: price.toString(8),
+        ui: ui
+    });
+
+    // ------
+    this.scatter.logout();
+
+    // ------
+    return this.scatter.queryAccountData(name).catch(async _ => {
+        console.log("VapaeeDEX.getAccountData('"+name+"') -> ", [this.default.data]);
+        return this.default.data;
+    });
+
+    // ------
+    this.contract = await this.scatter.getContractWrapper(this.contract_name);
+    this.connexion = await this.scatter.getConnexion(null);
+    // this.wallet.resetIdentity();
+
+--- NUEVO USO DE @vapaee/wallet --------------
+this.connexion = await this.scatter.createConnexion(this.network);
+

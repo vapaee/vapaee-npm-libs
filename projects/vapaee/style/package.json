@@ -1,8 +1,7 @@
 {
     "name": "@vapaee/style",
-    "version": "0.0.2",
+    "version": "0.1.1",
     "peerDependencies": {
-        "@angular/common": "",
-        "ngx-cookie-service": ""
+        "@angular/common": ""
     }
 }

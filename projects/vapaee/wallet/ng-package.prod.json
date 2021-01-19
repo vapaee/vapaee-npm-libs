@@ -1,0 +1,16 @@
+{
+  "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../../dist/vapaee/wallet",
+  "lib": {
+    "entryFile": "src/index.ts",
+    "umdModuleIds": {
+      "bignumber.js": "BigNumber",
+      "long": "Long",
+      "eosjs": "eosjs",
+      "@vapaee/feedback": "vapaee.feedback",
+      "@angular/common": "angular.common",
+      "@angular/core": "angular.core",
+      "rxjs": "rxjs"
+    }
+  }
+}

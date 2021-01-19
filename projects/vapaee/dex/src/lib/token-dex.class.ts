@@ -12,6 +12,7 @@ export interface TokenData {
     date: Date,
     html?: string,
     editing?: boolean,
+    extras?: any
 }
 
 export interface TokenEvent {

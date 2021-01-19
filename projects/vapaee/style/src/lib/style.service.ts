@@ -1,52 +1,29 @@
 import { Injectable, Inject } from '@angular/core';
 import { DOCUMENT } from "@angular/common";
-import { CookieService } from 'ngx-cookie-service';
+import { IStorage, Skin } from './types-style';
 
-
-export interface Skin {
-    id:string;
-    name:string;
-    url:string;
-}
 
 @Injectable({
     providedIn: 'root'
 })
 export class VapaeeStyle {
 
+    private storage: IStorage;
     private link: HTMLLinkElement;
     public skins: Skin[];
     private _current: Skin = {id:null, name:null, url:null};
 
     constructor(
-        @Inject(DOCUMENT) private doc,
-        private cookies: CookieService
+        @Inject(DOCUMENT) private doc
     ) {
-        this.skins = [
-            {
-                "id": "skin-rain",
-                "name": "Gray Rain",
-                "url": "/assets/skins/skin-rain.css"
-            },
-            {
-                "id": "skin-jungle",
-                "name": "Jungle",
-                "url": "/assets/skins/skin-jungle.css"
-            },
-            {
-                "id": "skin-sky",
-                "name": "Sky",
-                "url": "/assets/skins/skin-sky.css"
-            },
-            {
-                "id": "skin-football",
-                "name": "football",
-                "url": "/assets/skins/skin-football.css"
-            },
-        ];
+        this.skins = [];
+        this.createLinkForStylesheetURL(""); // creates the stylesheet link tag
+    }
 
-        this.createLinkForStylesheetURL("");
-        this.setSkin(this.cookies.get("skin") || "skin-jungle");
+    init(skins: Skin[], storage: IStorage) {
+        this.skins = skins;
+        this.storage = storage;
+        this.setSkin(this.storage.get("skin") || "skin-jungle");
     }
 
     get current() { return this._current; }
@@ -73,7 +50,7 @@ export class VapaeeStyle {
 
     private async applySking(skin:Skin) {
         this._current = skin;
-        this.cookies.set("skin", skin.id);
+        this.storage.set("skin", skin.id);
         console.log("VapaeeStyle.applySking()",skin);
         await this.takeOutCurrentStyle();
         await this.applyStyle(skin);
@@ -85,6 +62,6 @@ export class VapaeeStyle {
 
     private async applyStyle(skin:Skin) {
         console.log("VapaeeStyle.applyStyle()",skin);
-        this.link.setAttribute('href', skin.url);   
+        this.link.setAttribute('href', skin.url);
     }
 }

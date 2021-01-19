@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Asset, SmartContract, VapaeeScatter, VapaeeScatterConnexion } from './extern';
+import { Asset, SmartContract, VapaeeWallet, VapaeeWalletConnexion } from './extern';
 import { Feedback } from './extern';
 
 
@@ -56,7 +56,7 @@ export class VapaeeREX {
     public balances: {[account:string]:REXbalance};
     public deposits: {[account:string]:REXdeposits};
 
-    connexion:VapaeeScatterConnexion;
+    connexion:VapaeeWalletConnexion;
 
     private setInit: Function;
     public waitInit: Promise<any> = new Promise((resolve) => {
@@ -64,7 +64,7 @@ export class VapaeeREX {
     });
     
     constructor(
-        private scatter: VapaeeScatter
+        private wallet: VapaeeWallet
     ) {
         this.contract_name = "eosio";
         this.feed = new Feedback();
@@ -100,7 +100,7 @@ export class VapaeeREX {
                 "rexfund": {
                     "version": 0,
                     "owner": user,
-                    "balance": new Asset("0.0000 " + sym),                  
+                    "balance": new Asset("0.0000 " + sym),
                 },
                 "rexbal": {
                     "version": 0,
@@ -117,8 +117,8 @@ export class VapaeeREX {
     async init() {
         console.log("--- VapaeeREX.init() ---");
         this.subscribeToEvents();
-        this.contract = await this.scatter.getContractWrapper(this.contract_name);
-        this.connexion = await this.scatter.getConnexion(null);
+        this.connexion = await this.wallet.getConnexion(null);
+        this.contract = this.connexion.getContract(this.contract_name);
         this.setInit();
     }
 
@@ -132,7 +132,7 @@ export class VapaeeREX {
         await this.waitInit;
         this.feed.setLoading("REXpool", true);
         var result = await this.contract.getTable("rexpool");
-        console.log("VapaeeREX.updatePoolState() rexpool:", result);
+        console.debug("VapaeeREX.updatePoolState() rexpool:", result);
         console.assert(result.rows.length == 1, "ERROR: contract is returning more than one pool state");
         var _pool = result.rows[0];
         this.pool.loan_num = _pool.loan_num;
@@ -156,11 +156,11 @@ export class VapaeeREX {
             upper_bound: encodedName.toString(), 
             limit: 1
         }).then(result => {
-            console.log("VapaeeREX.queryAccountREXBalance() rexbal:", result);
+            console.debug("VapaeeREX.queryAccountREXBalance() rexbal:", result);
             let _row = result.rows[0];
             let _rexbal:REXbalance = {
                 version: 0,
-                owner: this.connexion.def_account.name,
+                owner: this.connexion.guest.name,
                 vote_stake: new Asset("0.0000 " + this.connexion.symbol),
                 rex_balance: new Asset("0.0000 REX"),
                 matured_rex: 0,
@@ -198,11 +198,11 @@ export class VapaeeREX {
             upper_bound: encodedName.toString(), 
             limit: 1
         }).then(result => {
-            console.log("VapaeeREX.queryAccountREXDeposits() rexfund:", result);
+            console.debug("VapaeeREX.queryAccountREXDeposits() rexfund:", result);
             let _row = result.rows[0];
             let _rexfund:REXdeposits = {
                 version: 0,
-                owner: this.connexion.def_account.name,
+                owner: this.connexion.guest.name,
                 balance: new Asset("0.0000 " + this.connexion.symbol)
             }            
             if (_row) {

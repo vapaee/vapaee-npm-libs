@@ -52,7 +52,25 @@
       ],
       "@vapaee/rex/*": [
         "dist/vapaee/rex/*"
-      ]
+      ],
+      "@vapaee/wallet": [
+        "dist/vapaee/wallet"
+      ],
+      "@vapaee/wallet/*": [
+        "dist/vapaee/wallet/*"
+      ],
+      "@vapaee/idp-scatter": [
+        "dist/vapaee/idp-scatter"
+      ],
+      "@vapaee/idp-scatter/*": [
+        "dist/vapaee/idp-scatter/*"
+      ],
+      "@vapaee/idp-local": [
+        "dist/vapaee/idp-local"
+      ],
+      "@vapaee/idp-local/*": [
+        "dist/vapaee/idp-local/*"
+      ],
     }
   }
 }

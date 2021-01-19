@@ -6,8 +6,9 @@ import { DatePipe } from '@angular/common';
 import { TokenDEX, TokenData, TokenEvent } from './token-dex.class';
 import { AssetDEX } from './asset-dex.class';
 import { MarketMap, UserOrdersMap, MarketSummary, EventLog, Market, HistoryTx, TokenOrders, Order, UserOrders, OrderRow, HistoryBlock, DEXdata, MarketDeclaration } from './types-dex';
-import { VapaeeScatter, Account, AccountData, SmartContract, TableResult, TableParams, Asset, VapaeeScatterConnexion } from './extern';
+import { VapaeeWallet, Account, AccountData, SmartContract, TableResult, TableParams, Asset, VapaeeWalletConnexion } from './extern';
 import { Feedback } from './extern';
+import { VapaeeIdentityProviderClass } from '@vapaee/wallet';
 
 
 @Injectable({
@@ -20,9 +21,9 @@ export class VapaeeDEX {
     public loginState: string;
     /*
     public loginState: string;
-    - 'no-scatter': Scatter no detected
-    - 'no-logged': Scatter detected but user is not logged
-    - 'account-ok': user logger with scatter
+    - 'no-wallet': wallet no detected
+    - 'no-logged': wallet detected but user is not logged
+    - 'account-ok': user logger with wallet
     */
     private _markets: MarketMap;
     private _reverse: MarketMap;
@@ -55,7 +56,7 @@ export class VapaeeDEX {
 
     activityPagesize:number = 10;
 
-    connexion:VapaeeScatterConnexion;
+    connexion:VapaeeWalletConnexion;
     
     activity:{
         total:number;
@@ -103,7 +104,7 @@ export class VapaeeDEX {
         this.setInit = resolve;
     });
     constructor(
-        private scatter: VapaeeScatter,
+        private wallet: VapaeeWallet,
         private cookies: CookieService,
         private datePipe: DatePipe
     ) {
@@ -116,7 +117,7 @@ export class VapaeeDEX {
     }
   
 
-    async init(appname:string, opt:any = null) {
+    async init(appname:string, opt:any = null, id_provider_class: VapaeeIdentityProviderClass) {
         console.log("---- VapaeeDEX.init() ----");
         this.subscribeToEvents();
 
@@ -131,9 +132,9 @@ export class VapaeeDEX {
         
         // Creating a connexion with network
         
-        this.connexion = await this.scatter.createConnexion(this.network);
+        this.connexion = await this.wallet.createConnexion(this.network, id_provider_class);
         
-        // Try to connect with Scatter (or compatible)
+        // Try to connect with wallet (or compatible)
         this.connexion.connect(appname).catch(e => {
             console.error(e);
         });
@@ -152,9 +153,9 @@ export class VapaeeDEX {
         })
         .then(data => {
             this.zero_telos = new AssetDEX("0.0000 TLOS", this);
-            console.log("-- VapaeeDEX.setTokensLoaded() --");
+            console.debug("-- VapaeeDEX.setTokensLoaded() --");
             for (let i in this.tokens) {
-                console.log(this.tokens[i].contract, " - ", this.tokens[i].symbol,",",this.tokens[i].precision);
+                console.debug(this.tokens[i].contract, " - ", this.tokens[i].symbol,",",this.tokens[i].precision);
             }
 
             this.setTokensLoaded();
@@ -176,9 +177,9 @@ export class VapaeeDEX {
             }, 100);
         });  
     
-        this.scatter.connexion.telos.autologin();
+        this.wallet.connexion.telos.autologin();
 
-        console.log("---- VapaeeDEX.init() finished ----");
+        console.debug("---- VapaeeDEX.init() finished ----");
         this.setInit();
     }
 
@@ -211,7 +212,7 @@ export class VapaeeDEX {
                 let canonical = this.canonicalTable(table);
                 let inverse = this.inverseTable(canonical);
                 let market_id = data.markets[i].id;
-                console.log("VapaeeDEX.updateMarkets()", i, market_id, table, canonical);
+                console.debug("VapaeeDEX.updateMarkets()", i, market_id, table, canonical);
                 if (canonical == table) {
                     this._markets[canonical] = this.auxAssertTable(canonical, market_id);
                 } else {
@@ -278,21 +279,21 @@ export class VapaeeDEX {
 
     // getters -------------------------------------------------------------
     get default(): Account {
-        return this.scatter.def_account;
+        return this.wallet.guest;
     }
 
     get logged() {
         if (!this.connexion) return null;
         return this.connexion.logged ?
-            (this.connexion.account ? this.connexion.account.name : this.scatter.def_account.name) :
+            (this.connexion.account ? this.connexion.account.name : this.wallet.guest.name) :
             null;
     }
 
     get account() {
-        if (!this.connexion) return this.scatter.def_account;
+        if (!this.connexion) return this.wallet.guest;
         return this.connexion.logged ? 
         this.connexion.account :
-        this.scatter.def_account;
+        this.wallet.guest;
     }
 
     get waitLogged() {
@@ -310,12 +311,12 @@ export class VapaeeDEX {
             let total_deposits: AssetDEX = new AssetDEX("0.0000 " + symbol, this);
             let total_inorders: AssetDEX = new AssetDEX("0.0000 " + symbol, this);
             for (let i in this.deposits) {
-                if (this.scatter.isNative(this.deposits[i])) {
+                if (this.connexion.isNative(this.deposits[i])) {
                     total_deposits = total_deposits.plus(this.deposits[i]);
                 }
             }
             for (let i in this.inorders) {
-                if (this.scatter.isNative(this.inorders[i])) {
+                if (this.connexion.isNative(this.inorders[i])) {
                     total_inorders = total_inorders.plus(this.inorders[i]);
                 }
             }
@@ -345,25 +346,12 @@ export class VapaeeDEX {
         } catch(e) {}
         this.feed.setLoading("login", false);
         this.updateLogState();
-
-        // console.log("VapaeeDEX.login() this.feed.loading('log-state')", this.feed.loading('log-state'));
-        // this.logout();
-        // this.updateLogState();
-        // console.log("VapaeeDEX.login() this.feed.loading('log-state')", this.feed.loading('log-state'));
-        // this.feed.setLoading("logout", false);
-        // return this.scatter.login().then(() => {
-        //     this.updateLogState();
-        //     this.feed.setLoading("login", false);
-        // }).catch(e => {
-        //     this.feed.setLoading("login", false);
-        //     throw e;
-        // });
     }
 
     async logout() {
         await this.waitInit;
         this.feed.setLoading("login", true);
-        this.scatter.logout();
+        this.connexion.logout();
     }
 
     onLogout() {
@@ -391,7 +379,7 @@ export class VapaeeDEX {
     onLoggedChange() {
         if (this.connexion.logged) {
             console.log("--- VapaeeDEX.onLoggedChange() ---", this.connexion.account.name);
-            console.log("account: ", this.connexion.account);
+            console.debug("account: ", this.connexion.account);
             this.onLogin(this.connexion.account.name);
         } else {
             console.log("--- VapaeeDEX.onLoggedChange() --- not logged");
@@ -410,7 +398,6 @@ export class VapaeeDEX {
             this.userorders = {};
             this.inorders = [];
             delete this._dexdata;
-            // console.log("this.onCurrentAccountChange.next(this.current.name) !!!!!!");
             this.onCurrentAccountChange.next(this.current.name);
             this.updateCurrentUser();
             this.feed.setLoading("account", false);
@@ -420,24 +407,23 @@ export class VapaeeDEX {
     }
 
     // --- loginState ---
-    // "no-scatter" - scatter was not detected
-    // "no-logged" - scatter detected but user not logged
-    // "account-ok" - scatter detected and user logged
-
+    // "no-wallet" - wallet was not detected
+    // "no-logged" - wallet detected but user not logged
+    // "account-ok" - wallet detected and user logged
     private async updateLogState() {
         console.log("VapaeeDEX.updateLogState() ");
-        this.loginState = "no-scatter";
-        console.log("VapaeeDEX.updateLogState() -> ", this.loginState);
+        this.loginState = "no-wallet";
+        console.debug("VapaeeDEX.updateLogState() -> ", this.loginState);
         this.feed.setLoading("log-state", true);        
         
         if (this.connexion) {
             if (this.connexion.connected) {
                 this.loginState = "no-logged";
-                console.log("VapaeeDEX.updateLogState() -> ", this.loginState);
+                console.debug("VapaeeDEX.updateLogState() -> ", this.loginState);
             }            
             if (this.connexion.logged) {
                 this.loginState = "account-ok";
-                console.log("VapaeeDEX.updateLogState() -> ", this.loginState);
+                console.debug("VapaeeDEX.updateLogState() -> ", this.loginState);
             }    
         }
         
@@ -447,14 +433,15 @@ export class VapaeeDEX {
     private async getAccountData(name: string): Promise<AccountData>  {
         console.log("VapaeeDEX.getAccountData('"+name+"')");
         if (name == this.default.name) return Promise.resolve(this.default.data);
-        return this.scatter.queryAccountData(name).catch(async _ => {
-            console.log("VapaeeDEX.getAccountData('"+name+"') -> ", [this.default.data]);
+        return this.connexion.queryAccountData(name).catch(async _ => {
+            console.debug("VapaeeDEX.getAccountData('"+name+"') -> ", [this.default.data]);
             return this.default.data;
         });
     }
 
     // Actions --------------------------------------------------------------
     async createOrder(type:string, amount:AssetDEX, price:AssetDEX, ui:number) {
+        console.log("VapaeeDEX.createOrder(",type,amount,price,ui,")");
         await this.waitInit;
         // "alice", "buy", "2.50000000 CNT", "0.40000000 TLOS"
         // name owner, name type, const asset & total, const asset & price
@@ -478,6 +465,7 @@ export class VapaeeDEX {
     }
 
     async cancelOrder(type:string, commodity:TokenDEX, currency:TokenDEX, orders:number[]) {
+        console.log("VapaeeDEX.cancelOrder(",type,commodity,currency,orders,")");
         await this.waitInit;
         // '["alice", "buy", "CNT", "TLOS", [1,0]]'
         // name owner, name type, const asset & total, const asset & price
@@ -503,6 +491,7 @@ export class VapaeeDEX {
     }
 
     async deposit(quantity:AssetDEX) {
+        console.log("VapaeeDEX.deposit(",quantity,")");
         await this.waitInit;
         // name owner, name type, const asset & total, const asset & price
         let contract = this.connexion.getContract(quantity.token.contract);
@@ -526,9 +515,10 @@ export class VapaeeDEX {
             console.error(e);
             throw e;
         });
-    }    
+    }
 
     async withdraw(quantity:AssetDEX, ui:number) {
+        console.log("VapaeeDEX.withdraw(",quantity, ui,")");
         await this.waitInit;
         this.feed.setError("withdraw", null);
         this.feed.setLoading("withdraw", true);
@@ -554,6 +544,7 @@ export class VapaeeDEX {
     // Tokens Action --------------------------------------------------------------
 
     async addtoken(token:TokenDEX) {
+        console.log("VapaeeDEX.addtoken(",token,")");
         await this.waitInit;
         let feedid = "addtoken";
         this.feed.setError(feedid, null);
@@ -584,6 +575,7 @@ export class VapaeeDEX {
     }
 
     async updatetoken(token:TokenDEX) {
+        console.log("VapaeeDEX.updatetoken(",token,")");
         await this.waitInit;
         let feedid = "updatetoken";
         this.feed.setError(feedid, null);
@@ -610,6 +602,7 @@ export class VapaeeDEX {
     }
 
     async tokenadmin(token: TokenDEX, newadmin:string) {
+        console.log("VapaeeDEX.tokenadmin(",token,newadmin,")");
         await this.waitInit;
         let feedid = "tokenadmin";
         this.feed.setError(feedid, null);
@@ -629,6 +622,7 @@ export class VapaeeDEX {
     }
 
     async settokeninfo(action:string, info:TokenData) {
+        console.log("VapaeeDEX.settokeninfo(",action, info,")");
         await this.waitInit;
         let feedid = "settokeninfo";
         this.feed.setError(feedid, null);
@@ -652,6 +646,7 @@ export class VapaeeDEX {
     }
 
     async edittkevent(action:string, symbol:string, evt:TokenEvent) {
+        console.log("VapaeeDEX.edittkevent(",action, symbol, evt,")");
         await this.waitInit;
         let feedid = "edittkevent";
         this.feed.setError(feedid, null);
@@ -674,6 +669,7 @@ export class VapaeeDEX {
 
     // TODO: migrate this function outside of @vapaee/dex
     async createtoken(asset:AssetDEX) {
+        console.log("VapaeeDEX.createtoken(",asset,")");
         await this.waitInit;
         let feedid = "createtoken";
         this.feed.setError(feedid, null);
@@ -695,7 +691,7 @@ export class VapaeeDEX {
     // Tokens --------------------------------------------------------------
 
     async addOffChainToken(offchain: TokenDEX) {
-        console.error("VapaeeDEX.addOffChainToken()", offchain.symbol.toUpperCase());
+        console.log("VapaeeDEX.addOffChainToken()", offchain.symbol.toUpperCase());
         await this.waitInit;
         return this.waitTokensLoaded.then(_ => {
             this.tokens.push(new TokenDEX({
@@ -717,8 +713,6 @@ export class VapaeeDEX {
 
     // --------------------------------------------------------------
     // Tables / markets
-
-
     getMarketById(market:string) {
         for (let i in this._markets) {
             if (this._markets[i].id == market) {
@@ -1088,6 +1082,13 @@ export class VapaeeDEX {
                     orders: this.auxProcessRowsToOrders(orders),
                     ids:ids
                 };
+
+                // HARDCODED (ini) -------------------------------------
+                if (table == "edna.tlos" || table == "tlos.edna") {
+                    delete map[table];
+                }
+                // HARDCODED (end) -------------------------------------
+
             }
             this.userorders = map;
 
@@ -1189,7 +1190,7 @@ export class VapaeeDEX {
             name: this.current.name,
             data: await this.getAccountData(this.current.name)
         }
-        console.log("VapaeeDEX.getUserData() this.current.data: ", [this.current.data]);
+        console.debug("VapaeeDEX.getUserData() this.current.data: ", [this.current.data]);
         delete this._dexdata;
         return this.current;
     }
@@ -1911,7 +1912,7 @@ export class VapaeeDEX {
             market.summary.max_inverse = max_inverse;
 
             //if(canonical=="acorn.tlos")console.log("Summary final:", market.summary);
-            if(canonical=="acorn.tlos")console.log("---------------------------------------------------",canonical,inversetable);
+            //if(canonical=="acorn.tlos")console.log("---------------------------------------------------",canonical,inversetable);
             this.feed.setLoading("summary."+canonical, false);
             this.feed.setLoading("summary."+inversetable, false);
             return market.summary;
@@ -2153,10 +2154,10 @@ export class VapaeeDEX {
                 for (let i=0; i<result.length; i++) {
                     _balances = _balances.concat(result[i]);
                 }
-                console.log(_balances);
+                console.debug(_balances);
                 this.balances = _balances;
                 delete this._dexdata;
-                console.log("VapaeeDEX.getBalances('"+account+"') ------ (end)", this.balances);
+                console.debug("VapaeeDEX.getBalances('"+account+"') ------ (end)", this.balances);
             }).then(_ => this.balances);
         });
     }
@@ -2173,7 +2174,7 @@ export class VapaeeDEX {
         for (let i in result.rows) {
             let _balance = new AssetDEX(result.rows[i].balance, this);
             if (_balance.token && _balance.token.symbol != "AUX") {
-                console.log("adding balance: ", result.rows[i].balance, "(" + contract + ")", [_balance.token]);
+                console.debug("adding balance: ", result.rows[i].balance, "(" + contract + ")", [_balance.token]);
                 _balances.push(_balance);
             } else {
                 console.warn("Token found but not registered on contract", contract, result.rows[i].balance);

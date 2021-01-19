@@ -6,7 +6,7 @@
     "entryFile": "src/index.ts",
     "umdModuleIds": {
       "@vapaee/feedback": "vapaee.feedback",
-      "@vapaee/scatter": "vapaee.scatter"
+      "@vapaee/wallet": "vapaee.wallet"
     }    
   }
 }
