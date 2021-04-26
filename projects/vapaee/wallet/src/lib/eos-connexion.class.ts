@@ -1,4 +1,4 @@
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { Asset } from './asset.class';
 import { Account, AccountData, Endpoint, EndpointState, Eosconf, GetInfoResponse,
         VapaeeWalletConnexion, Transaction, VapaeeIdentityProvider, RPC, Identity, VapaeeWalletInterface, TransactionResult } from './types-wallet';
@@ -10,6 +10,7 @@ import { SmartContract } from './contract.class';
 
 // @vapaee libs 
 import { Feedback } from './extern';
+import { resourceUsage } from 'process';
 
 
 
@@ -79,16 +80,17 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         this.symbol = this.wallet.getNetwork(slug).symbol; 
         this.subscribeToEvents();
 
+        this.updateInternalState();
         this.idprovider.onLogggedStateChange.subscribe(this.updateInternalState.bind(this));
     }
 
     async subscribeToEvents() {
         let style = 'background: #a74528; color: #FFF';
-        this.waitConnected.then(_ => console.log('%cEOSNetworkConnexion.waitConnected', style));
-        this.waitEosconf.then(_ => console.log('%cEOSNetworkConnexion.waitEosconf', style));
-        this.waitLogged.then(_ => console.log('%cEOSNetworkConnexion.waitLogged', style));
-        this.waitRPC.then(_ => console.log('%cEOSNetworkConnexion.waitRPC', style));
-        this.waitReady.then(_ => console.log('%cEOSNetworkConnexion.waitReady', style));
+        this.waitConnected.then(_ => console.log('%cEOSNetworkConnexion['+this.slug+'].waitConnected', style));
+        this.waitEosconf.then(_ => console.log('%cEOSNetworkConnexion['+this.slug+'].waitEosconf', style));
+        this.waitLogged.then(_ => console.log('%cEOSNetworkConnexion['+this.slug+'].waitLogged', style));
+        this.waitRPC.then(_ => console.log('%cEOSNetworkConnexion['+this.slug+'].waitRPC', style));
+        this.waitReady.then(_ => console.log('%cEOSNetworkConnexion['+this.slug+'].waitReady', style));
     } 
 
     get logged() {
@@ -188,18 +190,18 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         this.feed.setLoading("transaction");
         return new Promise<TransactionResult>(async (resolve, reject) => {
             await this.waitLogged;
+            console.error("EOSNetworkConnexion["+this.slug+"].sendTransaction() waitLogged CHECKPOINT");
 
             this.idprovider.sendTransaction(trx).then(res => {
                 console.debug('sent: ', res);
+                console.debug("https://telos.bloks.io/transaction/" + res.transaction_id);
                 this.feed.setLoading("transaction", false);
                 resolve(res);
             }).catch(err => {
-                console.error('error: ', err);
                 this.feed.setLoading("transaction", false);
                 this.feed.setError("transaction", err.message);
                 reject(err);
             });
-
         });        
     }
     
@@ -217,8 +219,8 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
 
     // Acount, Identity and authentication -----------------
 
-    private updateInternalState() {
-        console.log("EOSNetworkConnexion["+this.slug+"].updateInternalState()", [this.account]);
+    private async updateInternalState() {
+        console.log("EOSNetworkConnexion["+this.slug+"].updateInternalState()", [this.logged]);
         if (this.logged) {
             this.setLogged();
         }
@@ -250,23 +252,68 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
     // Networks (eosio blockchains) & Endpoints -----------------
     autoSelectEndPoint (): Promise<EndpointState> {
         console.log("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()");
+
         return new Promise((resolve, reject) => {
             let promises:Promise<EndpointState>[] = [];
+
+            console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  ENTRANDO ------");
 
             // Iterate over endponits and get the first one responding
             if (this.wallet.getNetwork(this.slug)) {
                 let endpoints: Endpoint[] = this.wallet.getNetwork(this.slug).endpoints;
                 for (let i=0; i<endpoints.length; i++) {
                     let endpoint: Endpoint = endpoints[i];
-                    promises.push(this.testEndpoint(endpoint, i));
+
+                    // discarding the same host
+                    if (this.eosconf && this.eosconf.host == endpoint.host) {
+                        endpoint.disabled = true;
+                        continue;
+                    }
+
+                    if (endpoint.disabled) continue; 
+
+                    if (endpoint.ping_get_info == -1) continue;
+
+                    promises.push(this.testEndpoint(endpoint));                  
+                }
+
+                if (promises.length == 0) {
+                    console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  TODOS DISABLED ?? ------");
+                    for (let i=0; i<endpoints.length; i++) {
+                        let endpoint: Endpoint = endpoints[i];
+                        console.error("endpoint["+endpoint.host+"].disabled: ", endpoint.disabled);
+                        endpoint.disabled = false;
+                        promises.push(this.testEndpoint(endpoint));
+                    }                    
                 }
             }
 
+            console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  PINGS ENVIADOS ------");
+
+            Promise.all(promises).then(_ => {
+                console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  FINALIZARON TODOS (then) ------");
+                this.wallet.getNetwork(this.slug);
+            }).catch(err => {
+                console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  FINALIZARON TODOS (catch) ------");
+                this.wallet.getNetwork(this.slug);
+            }).finally(() => {
+                console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  FINALIZARON TODOS (finally) ------");
+                this.wallet.getNetwork(this.slug);
+            })
+
             return Promise.race(promises).then(result => {
-                let n = this.extractEosconfig(result.index);
-                if (n) {
-                    if (!this.eosconf || this.eosconf.host != n.host) {
-                        this.eosconf = n;
+                console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint() Promise.race(promises) -> ", [result]);
+                let eosconf = this.extractEosconfig(result.endpoint);
+
+                console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  RACE!!! ", result.endpoint.host, result.endpoint.ping_get_info, " ------ ");
+
+                if (eosconf) {
+                    if (!this.eosconf || this.eosconf.host != eosconf.host) {
+                        this.eosconf = eosconf;
+                        if (this.getRPC()) {
+                            // we already have a RPC so we must create another with the new eosconf
+                            this.idprovider.createRPC(this.eosconf)
+                        }
                         this.setEosconf();
                         // console.log("Selected Endpoint: ", this.eosconf.host);
                         // this.resetIdentity();
@@ -282,29 +329,38 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         });
 
     }
-    private testEndpoint(endpoint: Endpoint, index:number = 0) {
+    private testEndpoint(endpoint: Endpoint) {
         console.log("EOSNetworkConnexion["+this.slug+"].testEndpoint()", endpoint.host);
+        // extra data to determine performance
+        endpoint.ping_get_info = 0;
+
         return new Promise<EndpointState>((resolve) => {
+            let _then = new Date();
             let url = endpoint.protocol + "://" + endpoint.host + ":" + endpoint.port + "/v1/chain/get_info";
             this.http.get<GetInfoResponse>(url).toPromise().then((response) => {
                 console.debug("EOSNetworkConnexion["+this.slug+"].testEndpoint() -> ", endpoint.host);
-                resolve({index, endpoint, response});
+                let _now = new Date();
+                let ping = _now.getTime() - _then.getTime();
+                endpoint.ping_get_info = ping;
+                resolve({endpoint, response});
             }).catch(e => {
+                endpoint.ping_get_info = -1;
                 console.warn("WARNING: endpoint not responding", e);
             });
         });
     }
 
-    private extractEosconfig(index: number): Eosconf {
-        console.log("EOSNetworkConnexion["+this.slug+"].extractEosconfig()", index);
-        let endpoint = this.wallet.getNetwork(this.slug).endpoints[index];
+    
+
+    private extractEosconfig(endpoint: Endpoint): Eosconf {
         if (!endpoint) return null;
+        console.log("EOSNetworkConnexion["+this.slug+"].extractEosconfig()", endpoint.host);
         let eosconf = {
             blockchain: "eos",
             chainId: this.wallet.getNetwork(this.slug).chainId,
             host: endpoint.host,
-            port: endpoint.port,
-            protocol: endpoint.protocol,
+            port: endpoint.port || 443,
+            protocol: endpoint.protocol || "https",
         }
         return eosconf;
     }
@@ -477,7 +533,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
     }
 
     async logout():Promise<any> {
-        console.log("EOSNetworkConnexion["+this.slug+"].logout()");
+        console.log("EOSNetworkConnexion["+this.slug+"].logout()");    
         this.waitLogged = new Promise((resolve) => {
             this.setLogged = resolve;
         });        

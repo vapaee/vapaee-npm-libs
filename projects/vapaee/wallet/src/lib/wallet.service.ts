@@ -49,6 +49,9 @@ export class VapaeeWallet implements VapaeeWalletInterface {
     async resetIdentity (): Promise<void> {
         return this.doResetIdentity();
     }
+    isNetworkEnabled (slug: string): boolean {
+        return this.doIsNetworkEnabled(slug);
+    }
     getNetwork (slug: string): Network {
         return this.doGetNetwork(slug);
     }
@@ -62,11 +65,22 @@ export class VapaeeWallet implements VapaeeWalletInterface {
     private _networks: NetworkMap = {};
     private _networks_slugs: string[] = [];
 
-
     private async doInit(path:string) {
+        console.log("VapaeeWallet.doInit("+path+")");
         this.doSubscribeToEvents();
-        let endpoints = await this.doFetchEndpoints(path);
-        this.doSetEndpoints(endpoints);
+        let networks: NetworkMap = await this.doFetchEndpoints(path);
+        for (var slug in networks) {
+            if (!networks[slug].disable && networks[slug].chainId) {
+                console.log(" network: ", slug, "endpoints:", networks[slug].endpoints);
+                for (var i=0; i<networks[slug].endpoints.length; i++) {
+                    networks[slug].endpoints[i].port = networks[slug].endpoints[i].port || 443;
+                    networks[slug].endpoints[i].protocol = networks[slug].endpoints[i].protocol || "https";
+                }
+            } else {
+                console.log(" network: ", slug, "(disabled)");
+            }
+        }
+        this.doSetEndpoints(networks);
     }
 
     private async doSubscribeToEvents() {
@@ -114,21 +128,22 @@ export class VapaeeWallet implements VapaeeWalletInterface {
         console.log("ScatterService.setEndpoints()", [endpoints]);
         this._networks = endpoints || this._networks;
         for (let slug in this._networks) {
+            if (this._networks[slug].disable) continue;
             this._networks_slugs.push(slug);
             // this.connexion[slug] = new EOSNetworkConnexion(this, slug, this.http);
         }
         this.setEndpointsReady();
     }    
 
-        
+
     private async doGetConnexion (slug:string): Promise<VapaeeWalletConnexion> {
-        console.log("VapaeeWallet.getConnexion(",slug,")");
+        console.debug("VapaeeWallet.getConnexion(",slug,")");
         return new Promise<VapaeeWalletConnexion>(async (resolve, reject) => {
             await this.waitEndpoints;
             let con = null;
             if (slug) {
                 con = this.connexion[slug];
-                console.assert(typeof con == "object", "ERROR: inconsistency error. Connexion for " + slug + " does not exist");
+                console.assert(typeof con == "object", "ERROR: inconsistency error. Connexion for '" + slug + "' does not exist");
             } else {
                 for (let i in this.connexion) { 
                     con = this.connexion[i];
@@ -150,9 +165,27 @@ export class VapaeeWallet implements VapaeeWalletInterface {
         }
     }
 
-    private doGetNetwork (slug: string): Network {
-        return this._networks[slug];
+    private doIsNetworkEnabled(slug: string): boolean{
+        if (!this._networks[slug])         return false;
+        if (this._networks[slug].disable)  return false;
+        return true;
     }
 
+    private doGetNetwork (slug: string): Network {
+        if (this._networks[slug].endpoints) {
+            this._networks[slug].endpoints.sort((a,b) => {
+
+                if (a.ping_get_info <= 0) return 1;
+                if (b.ping_get_info <= 0) return -1;
+
+                if (a.ping_get_info > b.ping_get_info) return 1;
+                if (a.ping_get_info < b.ping_get_info) return -1;
+                return 0;
+            });
+            console.debug("-- Endpoints for "+slug+" --");
+            console.debug(this._networks[slug].endpoints);
+        }
+        return this._networks[slug];
+    }
 
 }

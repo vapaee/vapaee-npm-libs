@@ -1,4 +1,4 @@
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { Asset } from './asset.class';
 import { SmartContract } from './contract.class';
 import { Token } from './token.class';
@@ -38,6 +38,7 @@ export interface VapaeeIdentityProviderClass {
 export interface VapaeeWalletInterface {
     createConnexion: (appname:string, id_provider_class:VapaeeIdentityProviderClass)=> Promise<VapaeeWalletConnexion>;
     getConnexion: (net_slug:string) => Promise<VapaeeWalletConnexion>;
+    isNetworkEnabled: (slug: string) => boolean;
     getNetwork: (slug: string) => Network;
     getNetworkSugs:() => string[];
     resetIdentity: () => Promise<void>;
@@ -217,7 +218,8 @@ export interface Account {
     slug?: string,
     name: string,
     publicKey?: string,
-    data?: AccountData
+    data?: AccountData,
+    id?: string,
 }
 
 export interface Identity {
@@ -226,9 +228,11 @@ export interface Identity {
 }
 
 export interface Endpoint {
-    protocol:string,
     host:string,
-    port:number
+    protocol?:string,
+    port?:number,
+    ping_get_info?: number,
+    disabled?: boolean
 }
 
 export interface Eosconf {
@@ -258,6 +262,7 @@ export interface  ScatterIdentity {
 
 export interface Network {
     slug?: string,
+    disable?: boolean,
     // index?: number,
     // eosconf?: Eosconf,
     explorer?: string,
@@ -339,7 +344,6 @@ export interface VapaeeWalletConnexion {
 
     // Networks (eosio blockchains) & Endpoints -----------------
     autoSelectEndPoint: () => Promise<EndpointState>;
-    
 
     networks: string[];
     // network: Network;

@@ -59,7 +59,7 @@ export class SmartContract {
     
 
     getTable(table:string, params:TableParams = {}): Promise<TableResult> {
-        console.log("SmartContract.getTable('"+table+"')" );
+        // console.log("SmartContract.getTable('"+table+"')" );
         // borro los campos que puedan estar en undefined
         for (let i in params) {
             if (typeof params[i] == "undefined") {

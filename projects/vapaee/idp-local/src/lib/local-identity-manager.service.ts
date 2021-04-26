@@ -1,8 +1,8 @@
 import { Injectable, Injector } from '@angular/core';
 import { Transaction, Identity, Account, VapaeeWalletInterface, RPC, EOS, Eosconf, VapaeeIdentityProvider, TransactionResult } from './extern';
 
-import { AsyncSubject, BehaviorSubject, Observable, ReplaySubject, Subject, zip, of, from, throwError } from 'rxjs';
-import { map, mapTo, tap, mergeAll, concatMap } from 'rxjs/operators';
+import { Observable, Subject, zip, of, from} from 'rxjs';
+import { map, mergeMap, concatMap } from 'rxjs/operators';
 
 import { ILocalStorage, KeyAccountPermission, KeyAccounts, KeyAccountsMap } from './types-local';
 import { LocalEoskey } from './local-eoskey.class';
@@ -15,6 +15,9 @@ import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 // import { EosApi } from 'eosjs-api';
 import { HttpClient } from '@angular/common/http';
 
+export interface VapaeeIdentityManagerOptions {
+    requestPassForLogin: boolean;
+}
 
 const IDENTITIES = "identities";
 const LOGGED = "logged";
@@ -30,7 +33,11 @@ export class VapaeeIdentityManagerService {
     appname:string;
     logged:{[blockchain:string]:Identity} = {};
     identities:Identity[]=[];
+    keyaccounts: {[pubkey:string]: Account[]} = {};
 
+    private options: VapaeeIdentityManagerOptions  = {
+        requestPassForLogin: false
+    }
 
     public accountRequest: string = null;
     public passwordRequest: boolean = false;
@@ -46,6 +53,10 @@ export class VapaeeIdentityManagerService {
     public onAccountRequest: Subject<string> = new Subject<string>();
     public onSelectAccount:Subject<{name:string, acc:Account}> = new Subject<{name:string, acc:Account}>();
 
+    public onKeyAccountUpdate:Subject<KeyAccountsMap> = new Subject<KeyAccountsMap>();
+    public onLoggedChange:Subject<void> = new Subject<void>();
+
+
     public feed: Feedback;
 
 
@@ -57,6 +68,8 @@ export class VapaeeIdentityManagerService {
     public waitStorage: Promise<any> = new Promise((resolve) => {
         this.setStorageReady = resolve;
     });
+
+    eos:{[slug:string]:{api?:Api, rpc?: JsonRpc, endpoint?:string}} = {}; 
 
     constructor(
         injector: Injector,
@@ -79,6 +92,9 @@ export class VapaeeIdentityManagerService {
         let style = 'background: #45a7f8; color: #FFF';
         this.waitStorage.then(_ => console.log('%cVapaeeIdentityManager.waitStorage', style));        
         this.waitInit.then(_ => console.log('%cVapaeeIdentityManager.waitInit', style));
+        this.onLoggedChange.subscribe(() => {
+            console.log('%cVapaeeIdentityManager.onLoggedChange', style);
+        });
     }
 
     get authentitated() {
@@ -109,16 +125,17 @@ export class VapaeeIdentityManagerService {
         return null;
     }
 
-    async init(wallet: VapaeeWalletInterface, storage: ILocalStorage) {
+    async init(wallet: VapaeeWalletInterface, storage: ILocalStorage, options: VapaeeIdentityManagerOptions = null) {
         console.log("-- VapaeeIdentityManagerService init ---");
         this.wallet = wallet;
         this.storage = storage;
         this.eoskey = new LocalEoskey(this.storage);
+        this.options = Object.assign(this.options, options);
 
         this.setStorageReady();
         await this.loadIdentities();
         await this.loadLogged();
-        this.createConnexions();
+        await this.createConnexions();
         this.setInitReady()
     }
 
@@ -172,7 +189,7 @@ export class VapaeeIdentityManagerService {
                         }
                     }
 
-                    if (typeof logged == "object") {
+                    if (logged && typeof logged == "object") {
                         this.logged = logged;
                         console.debug("VapaeeIdentityManagerService. Logged stored: ", this.logged);
                     } else {
@@ -188,20 +205,23 @@ export class VapaeeIdentityManagerService {
         })
     }
 
-
     private async createConnexions() {
+        console.log("VapaeeIdentityManagerService.createConnexions()...");
         await this.wallet.waitEndpoints;
-   
-        let networks = this.wallet.getNetworkSugs();
-        for (let i=0; i<networks.length; i++) {
-            let slug = networks[i];
-            let sub = this.createConnexion(slug).subscribe(slug => {
-                sub.unsubscribe();
-            });
-        }    
+        return new Promise<void>(resolve => {
+            let networks = this.wallet.getNetworkSugs();
+
+            from(networks).pipe(
+                mergeMap( slug => this.createConnexion(slug))
+            ).subscribe(slug => {
+                console.debug("VapaeeIdentityManagerService.createConnexions() Finished!", slug);
+                resolve();
+            });    
+        });
     }
 
     private createConnexion(slug:string) {
+        console.log("VapaeeIdentityManagerService.createConnexion("+slug+")");
         return new Observable<string>(obs => {
             this.wallet.createConnexion(slug, LocalIdProvider).then(conn => {
                 conn.createRPC().then(rpc => {
@@ -284,7 +304,10 @@ export class VapaeeIdentityManagerService {
         console.log("VapaeeIdentityManagerService.logout("+network_slug+")");
         delete this.logged[network_slug];
         this.saveLogged();
-        return new Observable<void>((observer => {}));
+        return new Observable<void>((observer => {
+            observer.next();
+            observer.complete();
+        }));
     }
 
 
@@ -293,17 +316,20 @@ export class VapaeeIdentityManagerService {
         // https://github.com/EOSIO/eosjs#sending-a-transaction
         return new Observable<TransactionResult>((observer => {
             let subscription = this.onEnterPassword.subscribe(pass => {
+                console.log("this.onEnterPassword()", pass);
                 if (this.eoskey.verify(pass)) {
-                    console.log("this.onEnterPassword()", pass);
                     this.signAndSendTransaction(network_slug, pass, trx).subscribe(r => {
                         observer.next(r);
                         observer.complete();
+                    },
+                    err => {
+                        observer.error(err);
                     });
                 } else {
-                    console.error("this.authentitated", this.authentitated);
                     this.print();
-                    observer.error("canceled");
-                    observer.complete();
+                    observer.error({
+                        message: pass ? "password" : "canceled"
+                    });
                 }
                 subscription.unsubscribe();
             });
@@ -318,9 +344,15 @@ export class VapaeeIdentityManagerService {
             this.wallet.getConnexion(slug).then(conn => {
 
                 let logged = this.isLogged(slug);
-                console.log(logged, "ERROR: not logged");
-                let account = logged.accounts[0]; 
+                console.assert(!!logged, "ERROR: not logged");
+                let account = logged.accounts[0];
                 let pubkey = account.publicKey;
+                console.log("-----------------------------------------------");
+                console.log("logged", logged);
+                console.log("account", account);
+                console.log("pass", pass);
+                console.log("pubkey", pubkey);
+                console.log("-----------------------------------------------");
                 let wif = this.eoskey.getKey(pass, pubkey);
                 let signatureProvider = new JsSignatureProvider([wif]);
     
@@ -358,7 +390,6 @@ export class VapaeeIdentityManagerService {
                         let result: TransactionResult = r;
                         observer.next(result);
                     }).catch(e => {
-                        console.error(e);
                         observer.error(e);
                     }).finally(() => {
                         observer.complete();
@@ -385,7 +416,7 @@ export class VapaeeIdentityManagerService {
         }));
     }
     
-    scanNetworksForAccounts(identity: string, pubkey: string, wif: string) {
+    scanNetworksForAccounts(identity: string, pubkey: string): Observable<KeyAccountsMap> {
         console.log("VapaeeIdentityManagerService.scanNetworksForAccounts(",identity,pubkey,")");
         let networks = this.wallet.getNetworkSugs();
 
@@ -399,54 +430,71 @@ export class VapaeeIdentityManagerService {
         endpoints.push("https://lightapi.eosamsterdam.net/api/key/");
         // ¿?¿??
         endpoints.push("https://hyperion.coffe.io/api/key/");
+
+        let indexes = [0,1,2,3];
         
 
+        let data$ = from(endpoints).pipe(
+            concatMap(endpoint => this.http.get<KeyAccountsMap>(endpoint + pubkey)),
+        );
 
-        return from(endpoints)
-        .pipe(
-            concatMap(endpoint => this.http.get<KeyAccountsMap>(endpoint + pubkey))
-        );        
+        let indexes$ = from(indexes);
+        let counter = endpoints.length;  
+
+        this.feed.setLoading("scanning");
+        this.feed.setLoading("scanning-0");
+        this.feed.setLoading("scanning-1");
+        this.feed.setLoading("scanning-2");
+        this.feed.setLoading("scanning-3");
+
+        return zip(data$, indexes$).pipe(
+            map(([data, index]) => {                
+                if (--counter == 0) this.feed.setLoading("scanning", false);
+                this.feed.setLoading("scanning-"+index, false);
+                return data;
+            })                
+        );
     }
 
-    eos:{[slug:string]:{api?:Api, rpc?: JsonRpc, endpoint?:string}} = {}; 
-    private scanNetworkForAccounts(slug: string, identity: string, pubkey: string, wif:string, retry:boolean): Observable<string> {
-        return new Observable<string>(obs => {
-            if (this.eos[slug]) {
-                try{
-                    console.log(slug,"history_get_key_accounts() ---> ", this.eos[slug].rpc.endpoint);
-                    this.eos[slug].rpc.history_get_key_accounts(pubkey).then(result => {
-                        console.log("----------",slug,"----------");
-                        console.log(this.eos[slug]);
-                        console.log(result);
-                        obs.next(slug);
-                    }).catch(e => {
-                        console.error(e)
-                        if (retry) {
-                            console.error(slug, "retrying...");
-                            this.wallet.getConnexion(slug).then(conn => {
-                                conn.autoSelectEndPoint().then(es => {
-                                    this.createRPC(slug, conn.eosconf);
-                                    this.scanNetworkForAccounts(slug, identity, pubkey, wif, false);    
-                                });
-                            });
-                        } else {
-                            obs.next(null);
-                        }
-                        
-                    });
-                } catch(e) {
-                    console.error(e);
-                }                
-            } else {
-                obs.next(null);
-            }
-        });
-    }
+    
+    // private scanNetworkForAccounts(slug: string, identity: string, pubkey: string, wif:string, retry:boolean): Observable<string> {
+    //     return new Observable<string>(obs => {
+    //         if (this.eos[slug]) {
+    //             try{
+    //                 console.log(slug,"history_get_key_accounts() ---> ", this.eos[slug].rpc.endpoint);
+    //                 this.eos[slug].rpc.history_get_key_accounts(pubkey).then(result => {
+    //                     console.log("----------",slug,"----------");
+    //                     console.log(this.eos[slug]);
+    //                     console.log(result);
+    //                     obs.next(slug);
+    //                 }).catch(e => {
+    //                     console.error(e)
+    //                     if (retry) {
+    //                         console.error(slug, "retrying...");
+    //                         this.wallet.getConnexion(slug).then(conn => {
+    //                             conn.autoSelectEndPoint().then(es => {
+    //                                 this.createRPC(slug, conn.eosconf);
+    //                                 this.scanNetworkForAccounts(slug, identity, pubkey, wif, false);    
+    //                             });
+    //                         });
+    //                     } else {
+    //                         obs.next(null);
+    //                     }
+    //                     
+    //                 });
+    //             } catch(e) {
+    //                 console.error(e);
+    //             }                
+    //         } else {
+    //             obs.next(null);
+    //         }
+    //     });
+    // }
 
     // .getKeyAccounts(public_key)
  
-    addKey(name: string, key:string) {
-        console.log("VapaeeIdentityManagerService.addKey(",key,")");
+    addKey(name: string, wif:string) {
+        console.log("VapaeeIdentityManagerService.addKey(",wif,")");
         let subscription = this.onEnterPassword.subscribe(pass => {
             // setInterval(() => {
             //     this.eoskey.verify(pass);
@@ -454,37 +502,47 @@ export class VapaeeIdentityManagerService {
 
             if (this.eoskey.verify(pass)) {
                 console.log("this.onEnterPassword() ---> ", pass);
-                let pub = this.eoskey.addKey(pass, key);
+                let pub = null;
+                try {
+                    pub = this.eoskey.addKey(pass, wif);
+                } catch(e) {
+                    let err = "ERROR: wrong WIF (Wallet Imput Format): "+ wif;
+                    console.error(err,e);
+                    throw err;
+                }
 
-                this.scanNetworksForAccounts(name, pub, key).subscribe(x => {
-                    let identity = this.getIdentityByName(name);
+                this.keyaccounts[pub] = [];
+                this.scanNetworksForAccounts(name, pub).subscribe(x => {
+                    
                     for (let slug in x) {
                         let response:KeyAccounts = x[slug];
                         for (let account_name in response.accounts) {
                             let permisions:KeyAccountPermission[] = response.accounts[account_name];
                             for(let i in permisions) {
                                 let a = permisions[i];
-                                let found = identity.accounts.find(
-                                    x => x.name == account_name &&
-                                    x.authority == a.perm &&
-                                    x.blockchain == response.chain.chainid);
-                                if (!found) {
-                                    // not included ---
-                                    identity.accounts.push({
+                                if (a.auth.keys[0].pubkey == pub) {
+                                    this.keyaccounts[pub].push({
+                                        id: account_name + "@" + slug + ":" + a.perm,
                                         name: account_name,
                                         slug: slug,
                                         authority: a.perm,
                                         publicKey: a.auth.keys[0].pubkey,
                                         blockchain: response.chain.chainid
                                     });
-                                }
+                                }                                
                             }
                         }
                     }
+
+                    this.keyaccounts[pub].sort( (a,b) => {
+                        return a.name.localeCompare(b.name);
+                    });
+
+                    this.onKeyAccountUpdate.next(x);
                 },
-                err => console.error(err), 
-                () => {
-                    this.saveIdentities();
+                err => {
+                    console.error(err);
+                    this.onKeyAccountUpdate.next(null);
                 });
 
             } else {
@@ -495,6 +553,14 @@ export class VapaeeIdentityManagerService {
             subscription.unsubscribe();
         });
         this.onPasswordRequest.next();
+    }
+
+    getPubkey(wif: string): string {
+        return this.eoskey.getPublicKey(wif);
+    }
+
+    verifyPassword(pass: string): boolean {
+        return this.eoskey.verify(pass);
     }
 
     getIdentityByName(name:string) {
@@ -533,8 +599,12 @@ export class VapaeeIdentityManagerService {
     addAccount(name:string, acc: Account) {
         console.log("VapaeeIdentityManagerService.addAccount(",name,[acc],")");
         let index = this.identities.map((x:Identity) => x.name).indexOf(name);
-        this.identities[index].accounts.push(acc);
-        this.saveIdentities();
+
+        if (this.identities[index].accounts.map((x:Account) => x.id).indexOf(acc.id) == -1) {
+            this.identities[index].accounts.push(acc);
+            this.saveIdentities();    
+        }
+
     }
     changeAccount(name:string, aindex: number, acc: Account) {
         console.log("VapaeeIdentityManagerService.changeAccount(",name,aindex,[acc],")");
@@ -542,17 +612,39 @@ export class VapaeeIdentityManagerService {
         this.identities[index].accounts[aindex] = acc;
         this.saveIdentities();
     }
-    removeAccount(name:string, aindex: number) {
-        console.log("VapaeeIdentityManagerService.removeAccount(",name,aindex,")");
+    removeAccount(name:string, aux: number|Account) {
+        console.log("VapaeeIdentityManagerService.removeAccount(",name,",acc)", [aux]);
         let index = this.identities.map((x:Identity) => x.name).indexOf(name);
-        this.identities[index].accounts.splice(aindex,1);
-        this.saveIdentities();
+        let aindex:number = -1;
+        let acc:Account = null;
+
+        if (typeof aux == "object") {
+            acc = aux;
+            aindex = this.identities[index].accounts.map((x:Account) => x.id).indexOf(acc.id);
+            console.debug("acc:",acc, "aindex: ", aindex);
+            if (aindex != -1) {
+                console.assert(!!acc.id && this.identities[index].accounts[aindex].name == acc.name, "ERROR: Account id missmatch")    
+            }            
+        } else {
+            aindex = aux;
+            acc = this.identities[index].accounts[aindex];
+        }
+        
+        if (aindex != -1) {
+            this.identities[index].accounts.splice(aindex,1);
+            if (this.logged[acc.slug] && this.logged[acc.slug].accounts[0].id == acc.id) {
+                this.logout(acc.slug);
+            }
+            this.saveIdentities();
+        }
     }
     private saveIdentities() {
         this.storage.set(IDENTITIES, JSON.stringify(this.identities));
     }
     private saveLogged() {
+        console.log("VapaeeIdentityManagerService.saveLogged()");
         this.storage.set(LOGGED, JSON.stringify(this.logged));
+        this.onLoggedChange.next();
     }
 
 
@@ -601,9 +693,13 @@ export class VapaeeIdentityManagerService {
             this.onSelectAccount.next(null);
             return of(null);
         }
-        this.assertAuthenticated().subscribe(x => {
+        if (this.options.requestPassForLogin) {
+            this.assertAuthenticated().subscribe(x => {
+                this.onSelectAccount.next({name, acc});
+            });
+        } else {
             this.onSelectAccount.next({name, acc});
-        });
+        }
     }
 
     // debug --------------------------------------------------------
@@ -674,7 +770,12 @@ export class LocalIdProvider implements VapaeeIdentityProvider {
     // transactions
     async sendTransaction(trx: Transaction):Promise<TransactionResult> {
         console.log("LocalIdProvider["+this.slug+"].sendTransaction()", trx);
-        return this.manager.sendTransaction(this.slug, trx).toPromise();
+        return new Promise<TransactionResult>((resolve, reject) => {
+            this.manager.sendTransaction(this.slug, trx).subscribe(
+                x => { resolve(x); },
+                e => { reject(e); }
+            );
+        });
     }
 
     // identity & authentication
@@ -728,3 +829,40 @@ export class LocalIdProvider implements VapaeeIdentityProvider {
     // ---------------------------
 
 }
+
+
+/*
+
+
+                this.scanNetworksForAccounts(name, pub).subscribe(x => {
+                    let identity = this.getIdentityByName(name);
+                    for (let slug in x) {
+                        
+                        let response:KeyAccounts = x[slug];
+                        for (let account_name in response.accounts) {
+                            let permisions:KeyAccountPermission[] = response.accounts[account_name];
+                            for(let i in permisions) {
+                                let a = permisions[i];
+                                let found = identity.accounts.find(
+                                    x => x.name == account_name &&
+                                    x.authority == a.perm &&
+                                    x.blockchain == response.chain.chainid);
+                                if (!found) {
+                                    // not included ---
+                                    identity.accounts.push({
+                                        name: account_name,
+                                        slug: slug,
+                                        authority: a.perm,
+                                        publicKey: a.auth.keys[0].pubkey,
+                                        blockchain: response.chain.chainid
+                                    });
+                                }
+                            }
+                        }
+                    }
+                },
+                err => console.error(err), 
+                () => {
+                    this.saveIdentities();
+                });
+*/

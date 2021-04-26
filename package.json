@@ -38,6 +38,7 @@
     },
     "private": true,
     "dependencies": {
+        "@angular/animations": "^11.0.2",
         "@angular/common": "^11.0.5",
         "@angular/compiler": "^11.0.5",
         "@angular/core": "^11.0.5",
@@ -59,7 +60,6 @@
         "zone.js": "^0.11.3"
     },
     "devDependencies": {
-        "@angular/animations": "^11.0.2",
         "@angular/cdk": "^11.0.0",
         "@angular/forms": "^11.0.2",
         "@angular/localize": "^11.0.2",

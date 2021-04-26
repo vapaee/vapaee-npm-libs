@@ -157,13 +157,13 @@ export class LocalEoskey  {
     //     return trx;
     // }
 
+    public getPublicKey(privatekey:string):string {
+        return ecc.privateToPublic(privatekey);
+    }
+
     // private ------------------------
     private saveKeys() {
         this.storage.set(KEYS, JSON.stringify(this.keys));
-    }
-
-    private getPublicKey(privatekey:string):string {
-        return ecc.privateToPublic(privatekey);
     }
 
     private encrypt(pass: string, text: string): string {
@@ -179,6 +179,7 @@ export class LocalEoskey  {
 
     private decrypt(pass: string, ciphertext: string): string {
         // Decrypt
+        console.error("LocalEoskey.decrypt(",pass,ciphertext,")");
         var bytes  = CryptoJS.AES.decrypt(ciphertext, pass);
         var originalText = bytes.toString(CryptoJS.enc.Utf8);
         return originalText;
