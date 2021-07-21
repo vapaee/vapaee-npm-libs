@@ -1,6 +1,6 @@
 {
     "name": "@vapaee/dex",
-    "version": "2.4.3",
+    "version": "2.4.4",
     "peerDependencies": {
         "ngx-cookie-service": "^2.1.0",
         "rxjs": "^6.2.1",

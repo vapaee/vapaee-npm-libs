@@ -5,7 +5,8 @@ import { JsonRpc, Api } from 'eosjs';
 import { Subject } from 'rxjs';
 
 // @vapaee libs 
-import { Feedback, VapaeeIdentityProvider, Transaction, VapaeeWalletInterface, Eosconf, Network, EOS, Scatter, Account, RPC, Identity, TransactionResult } from './extern';
+import { VapaeeIdentityProvider, Transaction, VapaeeWalletInterface, Eosconf, Network, EOS, Scatter, Account, RPC, Identity, TransactionResult } from '@vapaee/wallet';
+import { Feedback } from '@vapaee/feedback';
 import { ScatterIdentity } from './types-scatter';
 
 export class ScatterIdProvider implements VapaeeIdentityProvider {
@@ -42,6 +43,7 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
     }
 
     // connexion with id provider
+    getEosconf(): Eosconf { return this.eosconf; }
     getRPC():RPC { return this.rpc; }
     async createRPC(eosconf: Eosconf):Promise<void> { return this.doCreateRPC(eosconf); }    
     async connect(appname:string):Promise<void> { return this.doConnect(appname); }
@@ -86,6 +88,7 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
                 try {
                     this.scatter_network = ScatterJS.Network.fromJson(eosconf);
                     this.rpc = new JsonRpc(this.scatter_network.fullhost()); 
+                    this.eosconf = eosconf;
                 } catch (e) {
                     reject(e)
                 }

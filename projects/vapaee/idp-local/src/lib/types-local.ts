@@ -43,4 +43,26 @@ export interface KeyAccounts {
 export interface KeyAccountsMap {
     [slug:string]:KeyAccounts
 }
-
+/*
+let ka: KeyAccounts = {
+    accounts: {
+        viterbotelos: [{
+            auth: {
+                accounts:[],
+                keys:
+            }
+        }]
+    }, 
+    chain: {
+        block_num: 46651966, 
+        block_time: "2021-01-17 22:44:47", 
+        chainid: "384da888112027f0321850a169f737c33e53b388aad48b5adace4bab97f437e0",      // 
+        decimals: 4,   
+        description: "Telos", 
+        network: "Telos",   
+        production:  1,
+        rex_enabled: 0,
+        sync: 0, 
+        systoken: "TLOS",
+    }
+}*/

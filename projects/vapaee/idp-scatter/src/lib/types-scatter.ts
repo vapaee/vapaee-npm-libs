@@ -1,3 +1,4 @@
+import { Account } from '@vapaee/wallet';
 
 export interface EOS {
     contracts: Function;

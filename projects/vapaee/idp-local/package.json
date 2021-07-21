@@ -1,6 +1,6 @@
 {
     "name": "@vapaee/idp-local",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "peerDependencies": {
         "rxjs": "^6.0.0",
         "rxjs-compat": "^6.0.0",

@@ -124,7 +124,7 @@ export class VapaeeREX {
 
     async subscribeToEvents() {
         let style = 'background: #6f4de4; color: #FFF';
-        this.waitInit.then(_ => console.log('%cVapaeeREX.waitInit', style));
+        this.waitInit.then(_ => console.log('%c VapaeeREX.waitInit ', style));
     }
 
     async updatePoolState() {

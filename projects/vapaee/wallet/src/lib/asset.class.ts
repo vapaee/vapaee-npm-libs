@@ -35,6 +35,7 @@ export class Asset {
                 this.parse(a, b);
             } else {
                 this.parse(a);
+                if (b) this.resolveToken(b);
             }            
             console.assert(this.amount instanceof BigNumber, "ERROR: Asset string malformed: '"+a+"'");
             return;
@@ -53,6 +54,10 @@ export class Asset {
         }
         if (t instanceof Asset) {
             this._token = (<Asset>t).token;
+            return;
+        }
+        if (typeof t == "string") {
+            this._token = new Token(t); // Symbol
             return;
         }
     }

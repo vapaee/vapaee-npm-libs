@@ -5,10 +5,12 @@ import { Token } from './token.class';
 import { ScatterUtils } from './utils.class';
 
 // @vapaee libs 
-import { Feedback } from './extern';
+import { Feedback } from '@vapaee/feedback';
 
 export interface VapaeeIdentityProvider {
-    // connexion with id provider    
+    // connexion with id provider
+    
+    getEosconf(): Eosconf;
     getRPC(): RPC;
     createRPC(eosconf: Eosconf):Promise<any>;
     connect(appname:string):Promise<any>;
@@ -262,7 +264,7 @@ export interface  ScatterIdentity {
 
 export interface Network {
     slug?: string,
-    disable?: boolean,
+    disabled?: boolean,
     // index?: number,
     // eosconf?: Eosconf,
     explorer?: string,

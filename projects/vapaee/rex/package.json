@@ -1,6 +1,6 @@
 {
     "name": "@vapaee/rex",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "peerDependencies": {
         "@vapaee/wallet": "1.0.0",
         "@vapaee/feedback": "1.1.1",

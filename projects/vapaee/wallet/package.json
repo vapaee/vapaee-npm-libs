@@ -1,6 +1,6 @@
 {
     "name": "@vapaee/wallet",
-    "version": "1.0.12",
+    "version": "1.0.14",
     "peerDependencies": {
         "bignumber.js": "8.0.2",
         "@vapaee/feedback": "^1.1.1",

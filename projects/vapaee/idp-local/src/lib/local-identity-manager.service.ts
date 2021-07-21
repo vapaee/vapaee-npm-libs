@@ -4,7 +4,7 @@ import { Transaction, Identity, Account, VapaeeWalletInterface, RPC, EOS, Eoscon
 import { Observable, Subject, zip, of, from} from 'rxjs';
 import { map, mergeMap, concatMap } from 'rxjs/operators';
 
-import { ILocalStorage, KeyAccountPermission, KeyAccounts, KeyAccountsMap } from './types-local';
+import { ILocalStorage, KeyAccountPermission, KeyAccounts, KeyAccountsMap, KeyAccountsChain } from './types-local';
 import { LocalEoskey } from './local-eoskey.class';
 import { Feedback } from '@vapaee/feedback';
 
@@ -14,6 +14,7 @@ import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 
 // import { EosApi } from 'eosjs-api';
 import { HttpClient } from '@angular/common/http';
+
 
 export interface VapaeeIdentityManagerOptions {
     requestPassForLogin: boolean;
@@ -90,11 +91,9 @@ export class VapaeeIdentityManagerService {
 
     doSubscribeToEvents() {
         let style = 'background: #45a7f8; color: #FFF';
-        this.waitStorage.then(_ => console.log('%cVapaeeIdentityManager.waitStorage', style));        
-        this.waitInit.then(_ => console.log('%cVapaeeIdentityManager.waitInit', style));
-        this.onLoggedChange.subscribe(() => {
-            console.log('%cVapaeeIdentityManager.onLoggedChange', style);
-        });
+        this.waitStorage            .then(_ => console.log('%c VapaeeIdentityManager.waitStorage ',    style));        
+        this.waitInit               .then(_ => console.log('%c VapaeeIdentityManager.waitInit ',       style));
+        this.onLoggedChange   .subscribe(() => console.log('%c VapaeeIdentityManager.onLoggedChange ', style));
     }
 
     get authentitated() {
@@ -113,10 +112,11 @@ export class VapaeeIdentityManagerService {
     }
 
     createRPC(slug: string, eosconf: Eosconf): JsonRpc {
+        let endpoint: string = eosconf.protocol + "://" + eosconf.host + ":" + eosconf.port;
         this.eos[slug] = this.eos[slug] || {};
-        let fullhost = eosconf.protocol + "://" + eosconf.host + ":" + eosconf.port;
-        this.eos[slug].rpc = new JsonRpc(fullhost);
-        console.log("VapaeeIdentityManagerService.createRPC("+slug+") --> " , fullhost);
+        this.eos[slug].endpoint = endpoint;
+        this.eos[slug].rpc = new JsonRpc(endpoint);
+        console.log("VapaeeIdentityManagerService.createRPC("+slug+") --> " , endpoint);
         return this.eos[slug].rpc;
     }
 
@@ -224,19 +224,21 @@ export class VapaeeIdentityManagerService {
         console.log("VapaeeIdentityManagerService.createConnexion("+slug+")");
         return new Observable<string>(obs => {
             this.wallet.createConnexion(slug, LocalIdProvider).then(conn => {
-                conn.createRPC().then(rpc => {
-                    try {
-                        let httpEndpoint: string = conn.eosconf.protocol + "://" + conn.eosconf.host + ":" + conn.eosconf.port;
-                        this.eos[slug] = this.eos[slug] || {};
-                        this.eos[slug].rpc = <JsonRpc>conn.getRPC();
-                        this.eos[slug].endpoint = httpEndpoint;
-                        console.log("----------",slug,"----------");
-                        console.log(this.eos[slug]);
-                    } catch(e) {
-                        console.error(e);
-                    }
-                    obs.next(slug);                            
-                });
+                console.assert(typeof conn.getRPC() == "object", "ERROR: conn.getRPC() -> null");
+                /*
+                try {
+                    let httpEndpoint: string = conn.eosconf.protocol + "://" + conn.eosconf.host + ":" + conn.eosconf.port;
+                    this.eos[slug] = this.eos[slug] || {};
+                    this.eos[slug].rpc = <JsonRpc>conn.getRPC();
+                    this.eos[slug].endpoint = httpEndpoint;
+                    console.log("----------",slug,"----------");
+                    console.log(this.eos[slug]);
+                } catch(e) {
+                    console.error(e);
+                }
+                */
+                obs.next(slug);                            
+                
             }).catch(e => {
                 obs.next(null);
             });
@@ -432,20 +434,67 @@ export class VapaeeIdentityManagerService {
         endpoints.push("https://hyperion.coffe.io/api/key/");
 
         let indexes = [0,1,2,3];
-        
 
         let data$ = from(endpoints).pipe(
             concatMap(endpoint => this.http.get<KeyAccountsMap>(endpoint + pubkey)),
         );
 
+        if (pubkey == "EOS8RoCAXxWYUW2v4xkG19F57BDVBzpt9NN2iDsD1ouQNyV2BkiNc") {
+            // for debugging purpose
+            let get_credentials = () => [
+                {
+                    "perm": "active",
+                    "threshold": 1,
+                    "auth": {
+                        "keys": [
+                            {
+                                "public_key": "PUB_K1_8MPwGHuGSHSfBp3HAWsrHDotAqp9ZPShBvNcGDpcmNNa2Q6ozK",
+                                "weight": 1,
+                                "pubkey": "EOS8RoCAXxWYUW2v4xkG19F57BDVBzpt9NN2iDsD1ouQNyV2BkiNc"
+                            }
+                        ],
+                        "accounts": []
+                    }
+                },
+                {
+                    "perm": "owner",
+                    "threshold": 1,
+                    "auth": {
+                        "keys": [
+                            {
+                                "pubkey": "EOS8RoCAXxWYUW2v4xkG19F57BDVBzpt9NN2iDsD1ouQNyV2BkiNc",
+                                "weight": 1,
+                                "public_key": "PUB_K1_5SicH9s2UGrDFJuM23CpiC9FmpbrBvXrFEYkutucAJnVZDpBRa"
+                            }
+                        ],
+                        "accounts": []
+                    }
+                }
+            ]
+            indexes = [0];
+            data$ = from([<KeyAccountsMap>{
+                "telos": {
+                    "chain": <KeyAccountsChain> {
+                        chainid: "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f"
+                    },
+                    "accounts": {
+                        "bob": get_credentials(),
+                        "alice": get_credentials(),
+                        "tom": get_credentials(),
+                        "kate": get_credentials(),
+                        "viterbotelos": get_credentials()
+                    }
+                }
+            }]);
+        }
+
         let indexes$ = from(indexes);
-        let counter = endpoints.length;  
+        let counter = indexes.length;  
 
         this.feed.setLoading("scanning");
-        this.feed.setLoading("scanning-0");
-        this.feed.setLoading("scanning-1");
-        this.feed.setLoading("scanning-2");
-        this.feed.setLoading("scanning-3");
+        for (let i=0; i<indexes.length; i++){
+            this.feed.setLoading("scanning-"+i);
+        }
 
         return zip(data$, indexes$).pipe(
             map(([data, index]) => {                
@@ -726,7 +775,6 @@ export class LocalIdProvider implements VapaeeIdentityProvider {
     
     // common ------------------------
     public eosconf: Eosconf;
-    
     public eos: EOS = null;
     public feed: Feedback;
     get connected(): boolean {
@@ -756,11 +804,15 @@ export class LocalIdProvider implements VapaeeIdentityProvider {
     }
 
     // connexion with id provider
+    getEosconf(): Eosconf {
+        return this.eosconf;
+    }
     getRPC():RPC {
         return this.manager.getRPC(this.slug);
     }
     async createRPC(eosconf: Eosconf):Promise<void> {
         console.log("LocalIdProvider["+this.slug+"].createRPC()");
+        this.eosconf = eosconf;
         this.manager.createRPC(this.slug, eosconf);
     }
     async connect(appname:string):Promise<void> {

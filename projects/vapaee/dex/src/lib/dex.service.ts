@@ -185,14 +185,14 @@ export class VapaeeDEX {
 
     async subscribeToEvents() {
         let style = 'background: #2845a7; color: #FFF';
-        this.waitOrderSummary  .then(_ => console.log('%cVapaeeDEX.waitOrderSummary',  style));
-        this.waitTokenStats    .then(_ => console.log('%cVapaeeDEX.waitTokenStats',    style));
-        this.waitTokenEvents   .then(_ => console.log('%cVapaeeDEX.waitTokenEvents',   style));
-        this.waitTokenData     .then(_ => console.log('%cVapaeeDEX.waitTokenData',     style));
-        this.waitMarketSummary .then(_ => console.log('%cVapaeeDEX.waitMarketSummary', style));
-        this.waitTokenSummary  .then(_ => console.log('%cVapaeeDEX.waitTokenSummary',  style));
-        this.waitTokensLoaded  .then(_ => console.log('%cVapaeeDEX.waitTokensLoaded',  style));
-        this.waitInit          .then(_ => console.log('%cVapaeeDEX.waitInit',          style));
+        this.waitOrderSummary  .then(_ => console.log('%c VapaeeDEX.waitOrderSummary ',  style));
+        this.waitTokenStats    .then(_ => console.log('%c VapaeeDEX.waitTokenStats ',    style));
+        this.waitTokenEvents   .then(_ => console.log('%c VapaeeDEX.waitTokenEvents ',   style));
+        this.waitTokenData     .then(_ => console.log('%c VapaeeDEX.waitTokenData ',     style));
+        this.waitMarketSummary .then(_ => console.log('%c VapaeeDEX.waitMarketSummary ', style));
+        this.waitTokenSummary  .then(_ => console.log('%c VapaeeDEX.waitTokenSummary ',  style));
+        this.waitTokensLoaded  .then(_ => console.log('%c VapaeeDEX.waitTokensLoaded ',  style));
+        this.waitInit          .then(_ => console.log('%c VapaeeDEX.waitInit ',          style));
     }
 
     async updateMarkets() {

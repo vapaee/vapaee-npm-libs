@@ -8,7 +8,7 @@ import { VapaeeWalletInterface, VapaeeWalletConnexion, Network, Account, Connexi
     NetworkMap, VapaeeIdentityProviderClass } from './types-wallet';
 
 // @vapaee libs 
-import { Feedback } from './extern';
+import { Feedback } from '@vapaee/feedback';
 
 
 @Injectable({
@@ -70,7 +70,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
         this.doSubscribeToEvents();
         let networks: NetworkMap = await this.doFetchEndpoints(path);
         for (var slug in networks) {
-            if (!networks[slug].disable && networks[slug].chainId) {
+            if (!networks[slug].disabled && networks[slug].chainId) {
                 console.log(" network: ", slug, "endpoints:", networks[slug].endpoints);
                 for (var i=0; i<networks[slug].endpoints.length; i++) {
                     networks[slug].endpoints[i].port = networks[slug].endpoints[i].port || 443;
@@ -85,7 +85,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
 
     private async doSubscribeToEvents() {
         let style = 'background: #28a745; color: #FFF';
-        this.waitEndpoints.then(_ => console.log('%cVapaeeWallet.waitEndpoints', style));
+        this.waitEndpoints.then(_ => console.log('%c VapaeeWallet.waitEndpoints ', style));
     }
 
     private async doFetchEndpoints(url:string): Promise<NetworkMap> {
@@ -128,7 +128,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
         console.log("ScatterService.setEndpoints()", [endpoints]);
         this._networks = endpoints || this._networks;
         for (let slug in this._networks) {
-            if (this._networks[slug].disable) continue;
+            if (this._networks[slug].disabled) continue;
             this._networks_slugs.push(slug);
             // this.connexion[slug] = new EOSNetworkConnexion(this, slug, this.http);
         }
@@ -167,7 +167,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
 
     private doIsNetworkEnabled(slug: string): boolean{
         if (!this._networks[slug])         return false;
-        if (this._networks[slug].disable)  return false;
+        if (this._networks[slug].disabled)  return false;
         return true;
     }
 
