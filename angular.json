@@ -2,142 +2,11 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "newProjectRoot": "projects",
-  "defaultProject": "vapaee-wallet-test",
   "projects": {
-    "vapaee-wallet-test": {
-      "projectType": "application",
-      "schematics": {
-        "@schematics/angular:component": {
-          "style": "scss"
-        },
-        "@schematics/angular:application": {
-          "strict": true
-        }
-      },
-      "root": "",
-      "sourceRoot": "src",
-      "prefix": "app",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:browser",
-          "options": {
-            "outputPath": "dist/vapaee-wallet-test",
-            "index": "src/index.html",
-            "main": "src/main.ts",
-            "polyfills": "src/polyfills.ts",
-            "tsConfig": "tsconfig.app.json",
-            "aot": true,
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ],
-            "styles": [
-              "node_modules/bootstrap/dist/css/bootstrap.min.css",
-              "./node_modules/@angular/material/prebuilt-themes/pink-bluegrey.css",
-              {
-                "input": "src/theme/variables.scss"
-              },
-              {
-                "input": "src/global.scss"
-              }
-            ],
-            "scripts": []
-          },
-          "configurations": {
-            "production": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ],
-              "optimization": true,
-              "outputHashing": "all",
-              "sourceMap": false,
-              "namedChunks": false,
-              "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "500kb",
-                  "maximumError": "4mb"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
-                }
-              ]
-            }
-          }
-        },
-        "serve": {
-          "builder": "@angular-devkit/build-angular:dev-server",
-          "options": {
-            "browserTarget": "vapaee-wallet-test:build"
-          },
-          "configurations": {
-            "production": {
-              "browserTarget": "vapaee-wallet-test:build:production"
-            }
-          }
-        },
-        "extract-i18n": {
-          "builder": "@angular-devkit/build-angular:extract-i18n",
-          "options": {
-            "browserTarget": "vapaee-wallet-test:build"
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "src/test.ts",
-            "polyfills": "src/polyfills.ts",
-            "tsConfig": "tsconfig.spec.json",
-            "karmaConfig": "karma.conf.js",
-            "assets": [
-              "src/favicon.ico",
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.scss"
-            ],
-            "scripts": []
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "tsconfig.app.json",
-              "tsconfig.spec.json",
-              "e2e/tsconfig.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        },
-        "e2e": {
-          "builder": "@angular-devkit/build-angular:protractor",
-          "options": {
-            "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "vapaee-wallet-test:serve"
-          },
-          "configurations": {
-            "production": {
-              "devServerTarget": "vapaee-wallet-test:serve:production"
-            }
-          }
-        }
-      }
-    },
     "@vapaee/feedback": {
+      "projectType": "library",
       "root": "projects/vapaee/feedback",
       "sourceRoot": "projects/vapaee/feedback/src",
-      "projectType": "library",
       "prefix": "lib",
       "architect": {
         "build": {
@@ -174,50 +43,10 @@
         }
       }
     },
-    "@vapaee/dex": {
-      "root": "projects/vapaee/dex",
-      "sourceRoot": "projects/vapaee/dex/src",
-      "projectType": "library",
-      "prefix": "lib",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-ng-packagr:build",
-          "options": {
-            "tsConfig": "projects/vapaee/dex/tsconfig.lib.json",
-            "project": "projects/vapaee/dex/ng-package.json"
-          },
-          "configurations": {
-            "production": {
-              "project": "projects/vapaee/dex/ng-package.prod.json"
-            }
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "projects/vapaee/dex/src/test.ts",
-            "tsConfig": "projects/vapaee/dex/tsconfig.spec.json",
-            "karmaConfig": "projects/vapaee/dex/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/vapaee/dex/tsconfig.lib.json",
-              "projects/vapaee/dex/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        }
-      }
-    },
     "@vapaee/style": {
+      "projectType": "library",
       "root": "projects/vapaee/style",
       "sourceRoot": "projects/vapaee/style/src",
-      "projectType": "library",
       "prefix": "lib",
       "architect": {
         "build": {
@@ -254,10 +83,50 @@
         }
       }
     },
+    "@vapaee/idp-local": {
+      "projectType": "library",
+      "root": "projects/vapaee/idp-local",
+      "sourceRoot": "projects/vapaee/idp-local/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-ng-packagr:build",
+          "options": {
+            "tsConfig": "projects/vapaee/idp-local/tsconfig.lib.json",
+            "project": "projects/vapaee/idp-local/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "project": "projects/vapaee/idp-local/ng-package.prod.json"
+            }
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/vapaee/idp-local/src/test.ts",
+            "tsConfig": "projects/vapaee/idp-local/tsconfig.spec.json",
+            "karmaConfig": "projects/vapaee/idp-local/karma.conf.js"
+          }
+        },
+        "lint": {
+          "builder": "@angular-devkit/build-angular:tslint",
+          "options": {
+            "tsConfig": [
+              "projects/vapaee/idp-local/tsconfig.lib.json",
+              "projects/vapaee/idp-local/tsconfig.spec.json"
+            ],
+            "exclude": [
+              "**/node_modules/**"
+            ]
+          }
+        }
+      }
+    },
     "@vapaee/rex": {
+      "projectType": "library",
       "root": "projects/vapaee/rex",
       "sourceRoot": "projects/vapaee/rex/src",
-      "projectType": "library",
       "prefix": "lib",
       "architect": {
         "build": {
@@ -294,38 +163,38 @@
         }
       }
     },
-    "@vapaee/scatter": {
-      "root": "projects/vapaee/scatter",
-      "sourceRoot": "projects/vapaee/scatter/src",
+    "@vapaee/dex": {
       "projectType": "library",
+      "root": "projects/vapaee/dex",
+      "sourceRoot": "projects/vapaee/dex/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-ng-packagr:build",
           "options": {
-            "tsConfig": "projects/vapaee/scatter/tsconfig.lib.json",
-            "project": "projects/vapaee/scatter/ng-package.json"
+            "tsConfig": "projects/vapaee/dex/tsconfig.lib.json",
+            "project": "projects/vapaee/dex/ng-package.json"
           },
           "configurations": {
             "production": {
-              "project": "projects/vapaee/scatter/ng-package.prod.json"
+              "project": "projects/vapaee/dex/ng-package.prod.json"
             }
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/vapaee/scatter/src/test.ts",
-            "tsConfig": "projects/vapaee/scatter/tsconfig.spec.json",
-            "karmaConfig": "projects/vapaee/scatter/karma.conf.js"
+            "main": "projects/vapaee/dex/src/test.ts",
+            "tsConfig": "projects/vapaee/dex/tsconfig.spec.json",
+            "karmaConfig": "projects/vapaee/dex/karma.conf.js"
           }
         },
         "lint": {
           "builder": "@angular-devkit/build-angular:tslint",
           "options": {
             "tsConfig": [
-              "projects/vapaee/scatter/tsconfig.lib.json",
-              "projects/vapaee/scatter/tsconfig.spec.json"
+              "projects/vapaee/dex/tsconfig.lib.json",
+              "projects/vapaee/dex/tsconfig.spec.json"
             ],
             "exclude": [
               "**/node_modules/**"
@@ -341,14 +210,14 @@
       "prefix": "lib",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "builder": "@angular-devkit/build-ng-packagr:build",
           "options": {
             "tsConfig": "projects/vapaee/wallet/tsconfig.lib.json",
             "project": "projects/vapaee/wallet/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/vapaee/wallet/tsconfig.lib.prod.json"
+              "project": "projects/vapaee/wallet/ng-package.prod.json"
             }
           }
         },
@@ -381,15 +250,10 @@
       "prefix": "lib",
       "architect": {
         "build": {
-          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "builder": "@angular-devkit/build-ng-packagr:build",
           "options": {
             "tsConfig": "projects/vapaee/idp-scatter/tsconfig.lib.json",
             "project": "projects/vapaee/idp-scatter/ng-package.json"
-          },
-          "configurations": {
-            "production": {
-              "tsConfig": "projects/vapaee/idp-scatter/tsconfig.lib.prod.json"
-            }
           }
         },
         "test": {
@@ -413,46 +277,7 @@
           }
         }
       }
-    },
-    "@vapaee/idp-local": {
-      "projectType": "library",
-      "root": "projects/vapaee/idp-local",
-      "sourceRoot": "projects/vapaee/idp-local/src",
-      "prefix": "lib",
-      "architect": {
-        "build": {
-          "builder": "@angular-devkit/build-angular:ng-packagr",
-          "options": {
-            "tsConfig": "projects/vapaee/idp-local/tsconfig.lib.json",
-            "project": "projects/vapaee/idp-local/ng-package.json"
-          },
-          "configurations": {
-            "production": {
-              "tsConfig": "projects/vapaee/idp-local/tsconfig.lib.prod.json"
-            }
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "projects/vapaee/idp-local/src/test.ts",
-            "tsConfig": "projects/vapaee/idp-local/tsconfig.spec.json",
-            "karmaConfig": "projects/vapaee/idp-local/karma.conf.js"
-          }
-        },
-        "lint": {
-          "builder": "@angular-devkit/build-angular:tslint",
-          "options": {
-            "tsConfig": [
-              "projects/vapaee/idp-local/tsconfig.lib.json",
-              "projects/vapaee/idp-local/tsconfig.spec.json"
-            ],
-            "exclude": [
-              "**/node_modules/**"
-            ]
-          }
-        }
-      }
     }
-  }
+  },
+  "defaultProject": "@vapaee/feedback"
 }

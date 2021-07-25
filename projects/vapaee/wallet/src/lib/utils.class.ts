@@ -4,9 +4,9 @@ import * as Long from 'long';
 
 // ------------------
 export interface SlugId {
-    low?: string;
-    str?: string;
-    top?: string;
+    low: string;
+    top: string;
+    str: string;
 }
 export interface Work {
     items: any[];
@@ -86,11 +86,13 @@ export class ScatterUtils {
     }
 
     encodeUnit64(bits:number[]) {
-        let slugid:SlugId = {top:"0x",low:"0x"};
-        let str = "top";
+        let slugid:SlugId = {top:"0x",low:"0x",str:""};
         for (let i=0; i<bits.length; i+=4) {
-            if (i>=128) str = "low";
-            slugid[str] += this.encodeNibble(i, bits);
+            if (i>=128) {
+                slugid.low += this.encodeNibble(i, bits);
+            } else {
+                slugid.top += this.encodeNibble(i, bits);
+            }
         }
         return slugid;
     }
@@ -152,6 +154,7 @@ export class ScatterUtils {
     }
 
     decodeSlug(slug:SlugId) {
+        // default
         // decodeSlug() 0x41ae9c04d34873482a78000000000000 0x00000000000000000000000000000010
         // console.debug("decodeSlug()", nick.top, nick.low);
         let bits:number[] = [];
@@ -201,15 +204,16 @@ export class ScatterUtils {
     // (end) ---------------------------------------------------
 
     // OLD eosjs encodeName solution ------------------------------------------------------
+    /*
     charmap = '.12345abcdefghijklmnopqrstuvwxyz';
-    charidx = ch => {
+    charidx = ch:string => {
         const idx = this.charmap.indexOf(ch)
         if(idx === -1)
           throw new TypeError(`Invalid character: '${ch}'`)
       
         return idx;
     }
-    oldEosjsEncodeName(name, littleEndian = false) {
+    oldEosjsEncodeName(name: string, littleEndian = false) {
         if(typeof name !== 'string')
           throw new TypeError('name parameter is a required string')
       
@@ -244,16 +248,17 @@ export class ScatterUtils {
         
         return ulName.toString()
     }
+    
     // -------------------------------------------------------
 
     encodeName(name:string):BigNumber {
-        /*
-        const buffer: Serialize.SerialBuffer = new Serialize.SerialBuffer();
-        buffer.pushName(name);
-        let number = buffer.getUint64AsNumber();
-        */
+        // const buffer: Serialize.SerialBuffer = new Serialize.SerialBuffer();
+        // buffer.pushName(name);
+        // let number = buffer.getUint64AsNumber();
+
         let number = this.oldEosjsEncodeName(name);
         return new BigNumber(number);
     }
+    */
 
 }

@@ -1,14 +1,7 @@
 {
   "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
   "dest": "../../../dist/vapaee/dex",
-  "deleteDestPath": false,
   "lib": {
-    "entryFile": "src/index.ts",
-    "umdModuleIds": {
-      "@vapaee/feedback": "vapaee.feedback",
-      "@vapaee/scatter": "vapaee.scatter",
-      "bignumber.js": "BigNumber",
-      "ngx-cookie-service": "ngx-cookie-service"
-    }       
+    "entryFile": "index.ts"
   }
 }

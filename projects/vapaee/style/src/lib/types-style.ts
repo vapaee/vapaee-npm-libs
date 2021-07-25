@@ -1,6 +1,6 @@
 export interface IStorage {
-    get: (string) => any;
-    set: (string, any) => any;
+    get: (key: string) => any;
+    set: (key: string, value:any) => any;
 }
 
 export interface Skin {

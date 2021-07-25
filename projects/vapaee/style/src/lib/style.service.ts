@@ -8,13 +8,13 @@ import { IStorage, Skin } from './types-style';
 })
 export class VapaeeStyle {
 
-    private storage: IStorage;
-    private link: HTMLLinkElement;
+    private storage: IStorage = <IStorage>{};
+    private link: HTMLLinkElement = this.doc.createElement('link');
     public skins: Skin[];
-    private _current: Skin = {id:null, name:null, url:null};
+    private _current: Skin = {id:"", name:"", url:""};
 
     constructor(
-        @Inject(DOCUMENT) private doc
+        @Inject(DOCUMENT) private doc: any
     ) {
         this.skins = [];
         this.createLinkForStylesheetURL(""); // creates the stylesheet link tag
@@ -40,7 +40,7 @@ export class VapaeeStyle {
         }
     }
 
-    private createLinkForStylesheetURL(url) {
+    private createLinkForStylesheetURL(url:string) {
         console.log("VapaeeStyle.createLinkForStylesheetURL()");
         this.link = this.doc.createElement('link');
         this.link.setAttribute('rel', 'stylesheet');

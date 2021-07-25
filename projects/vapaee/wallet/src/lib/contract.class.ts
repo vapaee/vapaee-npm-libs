@@ -9,10 +9,10 @@ export class SmartContract {
     
     constructor(
         public contract: string = "",
-        public connexion: EOSNetworkConnexion = null
+        public connexion: EOSNetworkConnexion
     ) {
 
-    }    
+    }
     
     async excecute(action: string | Action | Transaction, payload: any = null) {
         console.log("SmartContract.excecute()", [action, payload]);
@@ -55,19 +55,14 @@ export class SmartContract {
         return this.connexion.sendTransaction(trx);
     }
 
-
-    
-
-    getTable(table:string, params:TableParams = {}): Promise<TableResult> {
+    getTable(table:string, params:any = {}): Promise<TableResult> {
         // console.log("SmartContract.getTable('"+table+"')" );
         // borro los campos que puedan estar en undefined
-        for (let i in params) {
+        for (let i in Object.keys(params)) {
             if (typeof params[i] == "undefined") {
                 delete params[i];
             }
         }
-
-    
 
         var _p = Object.assign({
             contract: this.contract, 
@@ -92,14 +87,11 @@ export class SmartContract {
             _p.key_type,
             _p.index_position
         );
-
-    
-
     }
     
     async getTableAll(table:string, params:TableParams = {}): Promise<TableResult> {
         console.log("SmartContract.getTableAll('"+table+"')" );
-        let rows = [];
+        let rows: any[] = [];
         params.limit = params.limit || 200;
         let result:TableResult = { more:true, rows: [] };
         

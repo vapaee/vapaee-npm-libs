@@ -4,41 +4,31 @@ import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig';
 // ReactiveX
 import { AsyncSubject, BehaviorSubject, Observable, ReplaySubject, Subject, zip, of, throwError } from 'rxjs';
 
-// EOS
-import { Api, JsonRpc, RpcError } from 'eosjs';
 import * as ecc from 'eosjs-ecc';
-
 
 // encryption
 import * as CryptoJS from 'crypto-js';
 
 
 // @vapaee libs 
-import { Feedback, VapaeeIdentityProvider, Transaction, VapaeeWalletInterface, Eosconf, Network, EOS, Account, RPC, Identity } from './extern';
-import { VapaeeIdentityManagerService } from './local-identity-manager.service';
 import { ILocalStorage } from './types-local';
-
-
 
 // ---
 const KEYS = "_k";
 const RANDOM = "_r";
 const ENCRYPTED = "_e";
 
-
-
 export class LocalEoskey  {
     
-
     public registered: boolean = false;
     public authentitated: boolean = false;
-    public rpc: JsonRpc;
+    // public rpc: JsonRpc;
 
     private conservate_pass: boolean = false;
-    private pass: string = null;
+    private pass: string = "";
 
-    private random: string;
-    private encrypted: string;
+    private random: string = "";;
+    private encrypted: string = "";;
     private keys: {[pub:string]:string} = {};
 
     constructor(
@@ -65,21 +55,6 @@ export class LocalEoskey  {
         )
     }
 
-    /*
-
-    createRPC(eosconf: Eosconf): Observable<void> {
-        console.log("LocalEoskey.createRPC(",[eosconf],")");
-        try {
-            let fullhost = eosconf.protocol + "://" + eosconf.host + ":" + eosconf.port;
-            this.rpc = new JsonRpc(fullhost);
-            return of();
-        } catch(e) {
-            return throwError(e);
-        }
-    }
-    */
-
-
     register(pass: string) {
         console.log("LocalEoskey.register(",pass,")");
         this.random = new Number(Math.random()*1000).toString();
@@ -105,9 +80,9 @@ export class LocalEoskey  {
         return this.authentitated;
     }
 
-    generate():Observable<any> {
+    generate():Observable<string> {
         console.log("LocalEoskey.generate()");
-        return new Observable<any>(obs => {
+        return new Observable<string>(obs => {
             ecc.randomKey().then(privateKey => {
                 obs.next(privateKey);
             });
@@ -115,15 +90,7 @@ export class LocalEoskey  {
     }
 
     addKey(pass: string, privatekey: string): string {
-
-
-        // https://github.com/EOSIO/eosjs/blob/master/docs/basic-usage/02_es-modules.md
-        // const signatureProvider = new JsSignatureProvider(privateKeys);
-        // const rpc = new JsonRpc('http://127.0.0.1:8888'); //required to read blockchain state
-        // const api = new Api({ rpc, signatureProvider }); //required to submit transactions        
-
-
-        let pubkey: string = null;
+        let pubkey: string = "";
         
         if (this.verify(pass)) {
             console.log("LocalEoskey.addKey(",pass, privatekey,")");
@@ -136,7 +103,7 @@ export class LocalEoskey  {
     }
 
     getKey(pass: string, pubkey:string): string {
-        let wif: string = null;
+        let wif: string = "";
         if (this.verify(pass)) {
             let encryptr_key = this.keys[pubkey];
             wif = this.decrypt(pass, encryptr_key);

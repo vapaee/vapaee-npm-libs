@@ -1,5 +1,5 @@
 import { Injectable, Injector } from '@angular/core';
-import { Transaction, Identity, Account, VapaeeWalletInterface, RPC, EOS, Eosconf, VapaeeIdentityProvider, TransactionResult } from './extern';
+import { Transaction, Identity, Account, VapaeeWalletInterface, RPC, EOS, Eosconf, VapaeeIdentityProvider, TransactionResult } from '@vapaee/wallet';
 
 import { Observable, Subject, zip, of, from} from 'rxjs';
 import { map, mergeMap, concatMap } from 'rxjs/operators';
@@ -30,8 +30,8 @@ export class VapaeeIdentityManagerService {
 
     LOGIN_TIMEOUT = 10000;
 
-    static injector: Injector = null;
-    appname:string;
+    static injector: Injector | null = null;
+    appname:string = "";
     logged:{[blockchain:string]:Identity} = {};
     identities:Identity[]=[];
     keyaccounts: {[pubkey:string]: Account[]} = {};
@@ -40,19 +40,19 @@ export class VapaeeIdentityManagerService {
         requestPassForLogin: false
     }
 
-    public accountRequest: string = null;
+    public accountRequest: string = "";
     public passwordRequest: boolean = false;
 
-    private _connected;
-    private wallet: VapaeeWalletInterface;
-    private storage: ILocalStorage;
-    private eoskey: LocalEoskey;
+    private _connected: boolean = false;
+    private wallet: VapaeeWalletInterface | null = null;
+    private storage: ILocalStorage | null = null;
+    private eoskey: LocalEoskey | null = null;
 
     public onPasswordRequest: Subject<void> = new Subject<void>();
     public onEnterPassword:Subject<string> = new Subject<string>();
 
     public onAccountRequest: Subject<string> = new Subject<string>();
-    public onSelectAccount:Subject<{name:string, acc:Account}> = new Subject<{name:string, acc:Account}>();
+    public onSelectAccount:Subject<{name:string, acc:Account} | null> = new Subject<{name:string, acc:Account} | null>();
 
     public onKeyAccountUpdate:Subject<KeyAccountsMap> = new Subject<KeyAccountsMap>();
     public onLoggedChange:Subject<void> = new Subject<void>();
@@ -61,12 +61,12 @@ export class VapaeeIdentityManagerService {
     public feed: Feedback;
 
 
-    private setInitReady: Function;
-    public waitInit: Promise<any> = new Promise((resolve) => {
+    private setInitReady: () => void = () => {};
+    public waitInit: Promise<void> = new Promise((resolve) => {
         this.setInitReady = resolve;
     });
-    private setStorageReady: Function;
-    public waitStorage: Promise<any> = new Promise((resolve) => {
+    private setStorageReady: () => void = () => {};
+    public waitStorage: Promise<void> = new Promise((resolve) => {
         this.setStorageReady = resolve;
     });
 
@@ -113,19 +113,20 @@ export class VapaeeIdentityManagerService {
 
     createRPC(slug: string, eosconf: Eosconf): JsonRpc {
         let endpoint: string = eosconf.protocol + "://" + eosconf.host + ":" + eosconf.port;
+        let rpc:JsonRpc = new JsonRpc(endpoint);
         this.eos[slug] = this.eos[slug] || {};
         this.eos[slug].endpoint = endpoint;
-        this.eos[slug].rpc = new JsonRpc(endpoint);
+        this.eos[slug].rpc = rpc;
         console.log("VapaeeIdentityManagerService.createRPC("+slug+") --> " , endpoint);
-        return this.eos[slug].rpc;
+        return rpc;
     }
 
-    getRPC(slug:string): RPC {
+    getRPC(slug:string): RPC | null{
         if (this.eos[slug]) return <RPC>this.eos[slug].rpc;
         return null;
     }
 
-    async init(wallet: VapaeeWalletInterface, storage: ILocalStorage, options: VapaeeIdentityManagerOptions = null) {
+    async init(wallet: VapaeeWalletInterface, storage: ILocalStorage, options: VapaeeIdentityManagerOptions|null = null) {
         console.log("-- VapaeeIdentityManagerService init ---");
         this.wallet = wallet;
         this.storage = storage;
@@ -141,8 +142,11 @@ export class VapaeeIdentityManagerService {
 
     private async loadIdentities(): Promise<void> {
         await this.waitStorage;
-        return new Promise<void>(resolve => {
-            this.storage.get(IDENTITIES).subscribe(
+        if (!this.storage) return Promise.reject("ERROR: storage is null");
+        let storage = this.storage;        
+        return new Promise<void>((resolve, reject) => {
+           
+            storage.get(IDENTITIES).subscribe(
                 identities => {
                     console.debug("this.storage.get(IDENTITIES).subscribe( --->  ", identities);
     
@@ -167,6 +171,10 @@ export class VapaeeIdentityManagerService {
                     }
                     this.saveIdentities();
                     resolve();
+                },
+                err => {
+                    console.error("loadIdentities()", err);
+                    reject(err);
                 }
             );
         })
@@ -174,43 +182,51 @@ export class VapaeeIdentityManagerService {
 
     private async loadLogged(): Promise<void> {
         await this.waitStorage;
-        return new Promise<void>(resolve => {
-            this.storage.get(LOGGED).subscribe(
-                logged => {
-                    console.debug("this.storage.get(LOGGED).subscribe( --->  ", logged);
+        if (!this.storage) return Promise.reject("ERROR: storage is null");
+        let storage = this.storage;
+        return new Promise<void>((resolve, reject) => {
+                storage.get(LOGGED).subscribe(
+                    logged => {
+                        console.debug("this.storage.get(LOGGED).subscribe( --->  ", logged);
 
-                    if (logged && typeof logged == "string") {
-                        try {
-                            logged = JSON.parse(logged);
-                        } catch(e) {
-                            console.log(typeof logged, logged);
-                            console.error(e, logged);
-                            logged = {};
+                        if (logged && typeof logged == "string") {
+                            try {
+                                logged = JSON.parse(logged);
+                            } catch(e) {
+                                console.log(typeof logged, logged);
+                                console.error(e, logged);
+                                logged = {};
+                            }
                         }
-                    }
 
-                    if (logged && typeof logged == "object") {
-                        this.logged = logged;
-                        console.debug("VapaeeIdentityManagerService. Logged stored: ", this.logged);
-                    } else {
-                        this.logged = {}
-                        if (logged) {
-                            console.error("ERROR: couldn't load logged. typeof logged ", typeof logged, [logged]);
+                        if (logged && typeof logged == "object") {
+                            this.logged = logged;
+                            console.debug("VapaeeIdentityManagerService. Logged stored: ", this.logged);
+                        } else {
+                            this.logged = {}
+                            if (logged) {
+                                console.error("ERROR: couldn't load logged. typeof logged ", typeof logged, [logged]);
+                            }
                         }
+                        this.saveLogged();
+                        resolve();
+                    },
+                    err => {
+                        console.error("loadLogged()", err);
+                        reject(err);
                     }
-                    this.saveLogged();
-                    resolve();
-                }
-            );
+                );
+            
         })
     }
 
-    private async createConnexions() {
+    private async createConnexions(): Promise<void> {
         console.log("VapaeeIdentityManagerService.createConnexions()...");
-        await this.wallet.waitEndpoints;
+        if (!this.wallet) return Promise.reject("ERROR: wallet is null");
+        let wallet = this.wallet;
+        await wallet.waitEndpoints;
         return new Promise<void>(resolve => {
-            let networks = this.wallet.getNetworkSugs();
-
+            let networks = wallet.getNetworkSugs();
             from(networks).pipe(
                 mergeMap( slug => this.createConnexion(slug))
             ).subscribe(slug => {
@@ -220,10 +236,12 @@ export class VapaeeIdentityManagerService {
         });
     }
 
-    private createConnexion(slug:string) {
+    private createConnexion(slug:string): Observable<string> {
         console.log("VapaeeIdentityManagerService.createConnexion("+slug+")");
+        if (!this.wallet) return new Observable<string>(a => a.error("ERROR: wallet is null"));
+        let wallet = this.wallet;
         return new Observable<string>(obs => {
-            this.wallet.createConnexion(slug, LocalIdProvider).then(conn => {
+            wallet.createConnexion(slug, LocalIdProvider).then(conn => {
                 console.assert(typeof conn.getRPC() == "object", "ERROR: conn.getRPC() -> null");
                 /*
                 try {
@@ -237,10 +255,10 @@ export class VapaeeIdentityManagerService {
                     console.error(e);
                 }
                 */
-                obs.next(slug);                            
+                obs.next(slug);                          
                 
             }).catch(e => {
-                obs.next(null);
+                obs.next("");
             });
         });        
     }
@@ -255,18 +273,25 @@ export class VapaeeIdentityManagerService {
         return this.logged[network_slug];
     }
 
-    async autologin(network_slug:string) {
+    async autologin(network_slug:string):Promise<void> {
         await this.waitInit;
+        if (!this.wallet) return Promise.reject("ERROR: wallet is null");
+        let wallet = this.wallet;
         console.log("VapaeeIdentityManagerService.autologin()");
-        if (this.isLogged(network_slug)) {
-            this.wallet.getConnexion(network_slug).then(conn => {
-                conn.getIdentityProvider().setIdentity(this.logged[network_slug]);
-            });
-        }        
+        return new Promise((resolve) => {
+            if (this.isLogged(network_slug)) {
+                wallet.getConnexion(network_slug).then(conn => {
+                    conn.getIdentityProvider().setIdentity(this.logged[network_slug]);
+                    resolve();
+                });
+            }
+        });
     }
     
     login(network_slug:string): Observable<Identity> {
         console.error("VapaeeIdentityManagerService.login("+network_slug+")");
+        if (!this.wallet) return new Observable(obs => obs.error("ERROR: wallet is null"));
+        let wallet = this.wallet;
         return new Observable<Identity>((observer => {
             let logged = this.isLogged(network_slug);
             if (logged) {
@@ -276,7 +301,7 @@ export class VapaeeIdentityManagerService {
                 let subscription = this.onSelectAccount.subscribe(res => {
                     console.log("this.onSelectAccount() ---> ", res);
                     if (res) {
-                        this.wallet.getConnexion(network_slug).then(conn => {
+                        wallet.getConnexion(network_slug).then(conn => {
 
                             this.logged[network_slug] = {
                                 name: res.name,
@@ -315,11 +340,13 @@ export class VapaeeIdentityManagerService {
 
     sendTransaction(network_slug:string, trx: Transaction): Observable<TransactionResult> {
         console.log("VapaeeIdentityManagerService.sendTransaction("+network_slug+")");
+        if (!this.eoskey) return new Observable(obs => obs.error("ERROR: eoskey is null"));
+        let eoskey = this.eoskey;
         // https://github.com/EOSIO/eosjs#sending-a-transaction
         return new Observable<TransactionResult>((observer => {
             let subscription = this.onEnterPassword.subscribe(pass => {
                 console.log("this.onEnterPassword()", pass);
-                if (this.eoskey.verify(pass)) {
+                if (eoskey.verify(pass)) {
                     this.signAndSendTransaction(network_slug, pass, trx).subscribe(r => {
                         observer.next(r);
                         observer.complete();
@@ -340,26 +367,44 @@ export class VapaeeIdentityManagerService {
 
     }
 
-    private signAndSendTransaction(slug: string, pass: string, trx: Transaction) {
+    private signAndSendTransaction(slug: string, pass: string, trx: Transaction): Observable<TransactionResult> {
+
+        // check wallet 
+        if (!this.wallet) return new Observable(obs => obs.error("ERROR: wallet is null"));
+        let wallet = this.wallet;
+
+        // check eoskey 
+        if (!this.eoskey) return new Observable(obs => obs.error("ERROR: eoskey is null"));
+        let eoskey = this.eoskey;
+
+        // check eos[slug]
+        let eosslug = this.eos[slug];
+        if (!eosslug) return new Observable(obs => obs.error("ERROR: this.eos['"+slug+"'] is null"));
+
+        // check eos[slug].rpc
+        if (!eosslug.rpc) return new Observable(obs => obs.error("ERROR: this.eos['"+slug+"'].rpc is null"));
+        let rpc:JsonRpc = eosslug.rpc;
+
+        
         return new Observable<TransactionResult>(observer => {
 
-            this.wallet.getConnexion(slug).then(conn => {
+            wallet.getConnexion(slug).then(conn => {
 
                 let logged = this.isLogged(slug);
                 console.assert(!!logged, "ERROR: not logged");
                 let account = logged.accounts[0];
-                let pubkey = account.publicKey;
+                let pubkey = account.publicKey || ""; // ensure string type
                 console.log("-----------------------------------------------");
                 console.log("logged", logged);
                 console.log("account", account);
                 console.log("pass", pass);
                 console.log("pubkey", pubkey);
                 console.log("-----------------------------------------------");
-                let wif = this.eoskey.getKey(pass, pubkey);
+                let wif = eoskey.getKey(pass, pubkey);
                 let signatureProvider = new JsSignatureProvider([wif]);
     
                 let api = new Api({
-                    rpc:this.eos[slug].rpc,
+                    rpc: rpc,
                     signatureProvider,
                     textDecoder: new TextDecoder(),
                     textEncoder: new TextEncoder()
@@ -391,9 +436,9 @@ export class VapaeeIdentityManagerService {
                     }).then(r => {
                         let result: TransactionResult = r;
                         observer.next(result);
+                        observer.complete();
                     }).catch(e => {
                         observer.error(e);
-                    }).finally(() => {
                         observer.complete();
                     });
                 } catch (e) {
@@ -412,6 +457,9 @@ export class VapaeeIdentityManagerService {
     
     generatePubKey(): Observable<any> {
         this.feed.setLoading("generate-keys");
+        // check eoskey 
+        if (!this.eoskey) return new Observable(obs => obs.error("ERROR: eoskey is null"));
+        
         return this.eoskey.generate().pipe( map(x => {
             this.feed.setLoading("generate-keys", false);
             return x;
@@ -420,6 +468,9 @@ export class VapaeeIdentityManagerService {
     
     scanNetworksForAccounts(identity: string, pubkey: string): Observable<KeyAccountsMap> {
         console.log("VapaeeIdentityManagerService.scanNetworksForAccounts(",identity,pubkey,")");
+        // check wallet 
+        if (!this.wallet) return new Observable(obs => obs.error("ERROR: wallet is null"));
+        
         let networks = this.wallet.getNetworkSugs();
 
         // TEMP --------------------------------------------------------------------------------
@@ -542,18 +593,23 @@ export class VapaeeIdentityManagerService {
 
     // .getKeyAccounts(public_key)
  
-    addKey(name: string, wif:string) {
+    addKey(name: string, wif:string): void {
         console.log("VapaeeIdentityManagerService.addKey(",wif,")");
+
+        // check eoskey 
+        if (!this.eoskey) return console.error("ERROR: eoskey is null");
+        let eoskey = this.eoskey;
+
         let subscription = this.onEnterPassword.subscribe(pass => {
             // setInterval(() => {
             //     this.eoskey.verify(pass);
             // }, 100);
 
-            if (this.eoskey.verify(pass)) {
+            if (eoskey.verify(pass)) {
                 console.log("this.onEnterPassword() ---> ", pass);
-                let pub = null;
+                let pub:string = "";
                 try {
-                    pub = this.eoskey.addKey(pass, wif);
+                    pub = eoskey.addKey(pass, wif);
                 } catch(e) {
                     let err = "ERROR: wrong WIF (Wallet Imput Format): "+ wif;
                     console.error(err,e);
@@ -591,7 +647,7 @@ export class VapaeeIdentityManagerService {
                 },
                 err => {
                     console.error(err);
-                    this.onKeyAccountUpdate.next(null);
+                    this.onKeyAccountUpdate.error(err);
                 });
 
             } else {
@@ -605,10 +661,14 @@ export class VapaeeIdentityManagerService {
     }
 
     getPubkey(wif: string): string {
+        // check eoskey 
+        if (!this.eoskey) return "";
         return this.eoskey.getPublicKey(wif);
     }
 
     verifyPassword(pass: string): boolean {
+        // check eoskey 
+        if (!this.eoskey) return false;
         return this.eoskey.verify(pass);
     }
 
@@ -665,10 +725,10 @@ export class VapaeeIdentityManagerService {
         console.log("VapaeeIdentityManagerService.removeAccount(",name,",acc)", [aux]);
         let index = this.identities.map((x:Identity) => x.name).indexOf(name);
         let aindex:number = -1;
-        let acc:Account = null;
+        let acc:Account = <Account>{};
 
         if (typeof aux == "object") {
-            acc = aux;
+            acc = <Account>aux;
             aindex = this.identities[index].accounts.map((x:Account) => x.id).indexOf(acc.id);
             console.debug("acc:",acc, "aindex: ", aindex);
             if (aindex != -1) {
@@ -681,17 +741,22 @@ export class VapaeeIdentityManagerService {
         
         if (aindex != -1) {
             this.identities[index].accounts.splice(aindex,1);
-            if (this.logged[acc.slug] && this.logged[acc.slug].accounts[0].id == acc.id) {
-                this.logout(acc.slug);
+            let slug = acc.slug;
+            if (slug) {
+                if (this.logged[slug] && this.logged[slug].accounts[0].id == acc.id) {
+                    this.logout(slug);
+                }
             }
             this.saveIdentities();
         }
     }
     private saveIdentities() {
+        if (!this.storage) return console.error("ERROR: storage is null");
         this.storage.set(IDENTITIES, JSON.stringify(this.identities));
     }
     private saveLogged() {
         console.log("VapaeeIdentityManagerService.saveLogged()");
+        if (!this.storage) return console.error("ERROR: storage is null");
         this.storage.set(LOGGED, JSON.stringify(this.logged));
         this.onLoggedChange.next();
     }
@@ -699,6 +764,7 @@ export class VapaeeIdentityManagerService {
 
     // authentication functions ------------------------------------
     registerPassword(pass:string) {
+        if (!this.eoskey) return console.error("ERROR: eoskey is null");
         this.eoskey.register(pass);
     }
 
@@ -714,9 +780,11 @@ export class VapaeeIdentityManagerService {
             return new Observable<void>(o => o.next());
         } else {
             console.log("VapaeeIdentityManagerService.assertAuthenticated() false! ");
+            if (!this.eoskey) return new Observable(obs => obs.error("ERROR: eoskey is null"));
+            let eoskey = this.eoskey;
             return new Observable<void>((observer => {
                 let subscription = this.onEnterPassword.subscribe(pass => {
-                    if (this.eoskey.verify(pass)) {
+                    if (eoskey.verify(pass)) {
                         console.log("this.onEnterPassword() ---> ", pass);
                         observer.next();
                         observer.complete();
@@ -736,11 +804,10 @@ export class VapaeeIdentityManagerService {
 
     // login // account selection ------------------------------------
     selectAccount(name: string, acc:Account) {
-        this.accountRequest = null;
+        this.accountRequest = "";
         console.error("-- VapaeeIdentityManagerService.selectAccount(",acc,") --");
         if (!acc) { 
             this.onSelectAccount.next(null);
-            return of(null);
         }
         if (this.options.requestPassForLogin) {
             this.assertAuthenticated().subscribe(x => {
@@ -758,7 +825,12 @@ export class VapaeeIdentityManagerService {
         console.log("_connected", this._connected);
         console.log("identities", this.identities);
         console.log("logged", this.logged);
-        this.eoskey.print();
+        if(this.eoskey) {
+            this.eoskey.print();
+        } else {
+            console.log("eoskey", this.eoskey);
+        }
+        
     }
 
 }
@@ -774,13 +846,13 @@ export class VapaeeIdentityManagerService {
 export class LocalIdProvider implements VapaeeIdentityProvider {
     
     // common ------------------------
-    public eosconf: Eosconf;
-    public eos: EOS = null;
+    public eosconf: Eosconf = {blockchain:"", protocol:"", host:"", port:0, chainId:""};
+    public eos: EOS | null = null;
     public feed: Feedback;
     get connected(): boolean {
         return this.manager ? this.manager.connected : false;
     }
-    get account(): Account {
+    get account(): Account | null {
         if (this.manager) {
             if (this.manager.isLogged(this.slug)) {
                 return this.manager.isLogged(this.slug).accounts[0];
@@ -799,15 +871,19 @@ export class LocalIdProvider implements VapaeeIdentityProvider {
         public wallet: VapaeeWalletInterface
     ) {
         this.feed = new Feedback();
-        console.assert(typeof VapaeeIdentityManagerService.injector == "object", "ERROR: VapaeeIdentityManagerService was not initialized. Execute constructor(public manager: VapaeeIdentityManagerService) { manager.init(); }");
-        this.manager = VapaeeIdentityManagerService.injector.get(VapaeeIdentityManagerService);
+        let err = "ERROR: VapaeeIdentityManagerService was not initialized. Execute constructor(public manager: VapaeeIdentityManagerService) { manager.init(); }";
+        if (VapaeeIdentityManagerService.injector) {
+            this.manager = VapaeeIdentityManagerService.injector.get(VapaeeIdentityManagerService);
+        } else {
+            throw(err);
+        }
     }
 
     // connexion with id provider
     getEosconf(): Eosconf {
         return this.eosconf;
     }
-    getRPC():RPC {
+    getRPC():RPC | null {
         return this.manager.getRPC(this.slug);
     }
     async createRPC(eosconf: Eosconf):Promise<void> {
@@ -881,40 +957,3 @@ export class LocalIdProvider implements VapaeeIdentityProvider {
     // ---------------------------
 
 }
-
-
-/*
-
-
-                this.scanNetworksForAccounts(name, pub).subscribe(x => {
-                    let identity = this.getIdentityByName(name);
-                    for (let slug in x) {
-                        
-                        let response:KeyAccounts = x[slug];
-                        for (let account_name in response.accounts) {
-                            let permisions:KeyAccountPermission[] = response.accounts[account_name];
-                            for(let i in permisions) {
-                                let a = permisions[i];
-                                let found = identity.accounts.find(
-                                    x => x.name == account_name &&
-                                    x.authority == a.perm &&
-                                    x.blockchain == response.chain.chainid);
-                                if (!found) {
-                                    // not included ---
-                                    identity.accounts.push({
-                                        name: account_name,
-                                        slug: slug,
-                                        authority: a.perm,
-                                        publicKey: a.auth.keys[0].pubkey,
-                                        blockchain: response.chain.chainid
-                                    });
-                                }
-                            }
-                        }
-                    }
-                },
-                err => console.error(err), 
-                () => {
-                    this.saveIdentities();
-                });
-*/

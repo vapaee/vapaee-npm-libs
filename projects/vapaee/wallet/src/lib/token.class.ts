@@ -16,7 +16,7 @@ export class Token {
     constructor(obj:any = null) {
         this._symbol = "$";
         this._precision = 0;
-        this._contract = null;
+        this._contract = "";
         this._chain = "telos";
     
         if (typeof obj == "string") {

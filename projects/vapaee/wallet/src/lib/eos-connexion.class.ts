@@ -1,7 +1,7 @@
 import { Observable, Subject } from 'rxjs';
 import { Asset } from './asset.class';
 import { Account, AccountData, Endpoint, EndpointState, Eosconf, GetInfoResponse,
-        VapaeeWalletConnexion, Transaction, VapaeeIdentityProvider, RPC, Identity, VapaeeWalletInterface, TransactionResult } from './types-wallet';
+        VapaeeWalletConnexion, Transaction, VapaeeIdentityProvider, RPC, Identity, VapaeeWalletInterface, TransactionResult, ResourceLimit } from './types-wallet';
 import { Token } from './token.class';
 import { ScatterUtils } from './utils.class';
 
@@ -10,7 +10,6 @@ import { SmartContract } from './contract.class';
 
 // @vapaee libs 
 import { Feedback } from '@vapaee/feedback';
-import { resourceUsage } from 'process';
 
 
 
@@ -23,29 +22,29 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
     onEndpointChange:Subject<EndpointState> = new Subject<EndpointState>();
     onLogggedStateChange:Subject<boolean> = new Subject<boolean>();
     // _account: Account;
-    private setReady: Function;
+    private setReady: (value: any) => void = _ => {};
     public waitReady: Promise<any> = new Promise((resolve) => {
         this.setReady = resolve;
     });
-    private setLogged: Function;
-    public waitLogged: Promise<any> = new Promise((resolve) => {
+    private setLogged: () => void = () => {};
+    public waitLogged: Promise<void> = new Promise((resolve) => {
         this.setLogged = resolve;
     });
-    private setConnected: Function;
-    public waitConnected: Promise<any> = new Promise((resolve) => {
+    private setConnected: () => void = () => {};
+    public waitConnected: Promise<void> = new Promise((resolve) => {
         this.setConnected = resolve;
     });
-    private setRPC: Function;
-    public waitRPC: Promise<any> = new Promise((resolve) => {
+    private setRPC: () => void = () => {};
+    public waitRPC: Promise<void> = new Promise((resolve) => {
         this.setRPC = resolve;
     });
-    private setEosconf: Function;
-    public waitEosconf: Promise<any> = new Promise((resolve) => {
+    private setEosconf: () => void = () => {};
+    public waitEosconf: Promise<void> = new Promise((resolve) => {
         this.setEosconf = resolve;
     });
 
     utils:ScatterUtils;
-    get account(): Account { 
+    get account(): Account | null { 
         return this.idprovider.account;
     }
     
@@ -59,7 +58,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
     // public rpc: JsonRpc = null;
     // public _connected: boolean;
     // public scatter_network: ScatterJS.Network;
-    public appname:string = null;
+    public appname:string;
     // public ScatterJS: any;
     private _account_queries: {[key:string]:Promise<AccountData>} = {};
 
@@ -69,9 +68,14 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         public http: HttpClient,
         public idprovider: VapaeeIdentityProvider
     ) {
-        // this.ScatterJS = ScatterJS;
+        this.error = "";
+        this.username = "";
+        this.appname = "";
+        this.authorization = {authorization:[]};
         this.feed = new Feedback();
+        this.networks = [];
         this.utils = new ScatterUtils();
+
         
         // ScatterJS.plugins( new ScatterEOS() );
         this.symbol = this.wallet.getNetwork(slug).symbol; 
@@ -98,7 +102,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         return this.idprovider.connected;
     }
 
-    get rpc(): RPC {
+    get rpc(): RPC | null{
         return this.idprovider.getRPC();
     }
 
@@ -115,7 +119,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         return new SmartContract(account, this);
     }
 
-    getRPC(): RPC {
+    getRPC(): RPC | null {
         if(!this.idprovider) return null;
         return this.idprovider.getRPC();
     }
@@ -127,15 +131,24 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
     async createRPC(): Promise<RPC> {
         console.error("ERROR: EOSNetworkConnexion.createRPC() is DEPRECATED "); 
         console.debug("EOSNetworkConnexion["+this.slug+"].createRPC()");
-
-        if (this.getRPC()) return Promise.resolve(this.getRPC());
+        
+        if (this.getRPC()) {
+            return Promise.resolve(<RPC>this.getRPC());
+        } 
         
         return new Promise<RPC>(async (resolve, reject) => {
             try {
                 await this.waitEosconf;
                 // await this.idprovider.createRPC(this.eosconf);
                 this.setRPC();
-                resolve(this.getRPC());    
+                if (this.getRPC()) {
+                    resolve(<RPC>this.getRPC());    
+                } else {
+                    let e = "ERROR: EOSNetworkConnexion["+this.slug+"].createRPC() after setRPC(), getRPC() returned null";
+                    console.error(e);
+                    reject(e);
+                }
+                
             } catch(e) {
                 console.error(e);
                 reject(e);
@@ -236,13 +249,14 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
 
     updateAccountData() {
         console.log("EOSNetworkConnexion["+this.slug+"].updateAccountData()");
-        if (this.logged) {
-            this.queryAccountData(this.account.name).then(data => {
-                this.account.data = data;
+        if (this.logged && !!this.account) {
+            let account = this.account;
+            this.queryAccountData(account.name).then(data => {
+                account.data = data;
                 console.debug("this.onLogggedStateChange.next(true); EVENT");
                 this.onLogggedStateChange.next(true);
             }).catch(_ => {
-                this.account.data = this.guest.data;
+                account.data = this.guest.data;
                 console.debug("this.onLogggedStateChange.next(true); EVENT");
                 this.onLogggedStateChange.next(true);
             });
@@ -298,9 +312,6 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
             }).catch(err => {
                 console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  FINALIZARON TODOS (catch) ------");
                 this.wallet.getNetwork(this.slug);
-            // }).finally(() => {
-            //     console.debug("EOSNetworkConnexion["+this.slug+"].autoSelectEndPoint()  FINALIZARON TODOS (finally) ------");
-            //     this.wallet.getNetwork(this.slug);
             })
 
             return Promise.race(promises).then(result => {
@@ -348,7 +359,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
 
     
 
-    private extractEosconfig(endpoint: Endpoint): Eosconf {
+    private extractEosconfig(endpoint: Endpoint): Eosconf | null {
         if (!endpoint) return null;
         console.log("EOSNetworkConnexion["+this.slug+"].extractEosconfig()", endpoint.host);
         let eosconf = {
@@ -392,20 +403,20 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
     calculateTotalStaked(account:AccountData): Asset {
         console.log("EOSNetworkConnexion["+this.slug+"].calculateTotalStaked("+account+")");
         return new Asset("0.0000 " + this.symbol)
-            .plus(account.refund_request.net_amount_asset)
-            .plus(account.refund_request.cpu_amount_asset)
-            .plus(account.self_delegated_bandwidth.cpu_weight_asset)
-            .plus(account.self_delegated_bandwidth.net_weight_asset);
+            .plus(account.refund_request? account.refund_request.net_amount_asset: null)
+            .plus(account.refund_request? account.refund_request.cpu_amount_asset: null)
+            .plus(account.self_delegated_bandwidth? account.self_delegated_bandwidth.cpu_weight_asset: null)
+            .plus(account.self_delegated_bandwidth? account.self_delegated_bandwidth.net_weight_asset: null);
     }
 
-    calculateResourceLimit(limit) {
+    calculateResourceLimit(limit:ResourceLimit | undefined): ResourceLimit {
         console.log("EOSNetworkConnexion["+this.slug+"].calculateResourceLimit()");
         limit = Object.assign({
             max: 0, used: 0
         }, limit);
         
         if (limit.max != 0) {
-            limit.percent = 1 - (Math.min(limit.used, limit.max) / limit.max);
+            limit.percent = 1 - (Math.min(limit.used || 0, limit.max || 0) / (limit.max || 1));
         } else {
             limit.percent = 0;
         }
@@ -418,6 +429,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         this._account_queries[name] = this._account_queries[name] || new Promise<AccountData>((resolve, reject) => {
             // console.log("PASO 1 ------", [this._account_queries])
             this.waitRPC.then(() => {
+                if (!this.rpc) return reject("ERROR: rpc is null");
                 this.rpc.get_account(name).then((response) => {
                     // console.error("--------------- EOSNetworkConnexion.queryAccountData() CHECK POINT ----------------------");
                     let account_data: AccountData = <AccountData>response;
@@ -495,7 +507,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         promise.then((r) => {
             // console.error("EOSNetworkConnexion["+this.slug+"].queryAccountData() CHECK POINT 3", [r]);
             setTimeout(() => {
-                delete this._account_queries[r.account_name];
+                delete this._account_queries[r.account_name || ""];
             });
         });
         
@@ -530,9 +542,9 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
 
     async logout():Promise<any> {
         console.log("EOSNetworkConnexion["+this.slug+"].logout()");    
-        this.waitLogged = new Promise((resolve) => {
+        this.waitLogged = new Promise<void>((resolve) => {
             this.setLogged = resolve;
-        });        
+        });
         this.idprovider.logout();
     }
 
@@ -564,6 +576,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
                     upper_bound: upperb
                 }
                 
+                if(!this.rpc) return reject("ERROR: rpc is null");
                 this.rpc.get_table_rows(json).then(_data => {
                     console.debug("EOSNetworkConnexion["+this.slug+"].getTableRows(",contract, scope, table, tkey, lowerb, upperb, limit, ktype, ipos,") -> ", _data);
                     resolve(_data);
@@ -579,7 +592,7 @@ export class EOSNetworkConnexion implements VapaeeWalletConnexion {
         });
     }
 
-    isNative(thing: Asset | Token) {
+    isNative(thing: Asset | Token): boolean {
         if (thing instanceof Asset) {
             return (<Asset>thing).token.symbol == this.symbol;
         }

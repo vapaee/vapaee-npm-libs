@@ -20,8 +20,8 @@ export class VapaeeWallet implements VapaeeWalletInterface {
     public connexion: ConnexionMap = {};
     public timeout_sec: number = 10;
 
-    private setEndpointsReady: Function;
-    public waitEndpoints: Promise<any> = new Promise((resolve) => {
+    private setEndpointsReady: () => void = () => {};
+    public waitEndpoints: Promise<void> = new Promise((resolve) => {
         this.setEndpointsReady = resolve;
     });    
 
@@ -106,7 +106,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
         var id_provider = new id_provider_class(slug, this);
         this.feed.setLoading("connexion");
         return new Promise<VapaeeWalletConnexion>(async (resolve, reject) => {
-            setTimeout(_ => {
+            setTimeout(() => {
                 if (this.feed.loading("connexion")) {
                     this.feed.setLoading("connexion", false);
                     this.feed.setLoading("set-network", false);
@@ -152,7 +152,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
             }
             
             if (typeof con == "object") {
-                resolve(con);
+                resolve(<VapaeeWalletConnexion>con);
             } else {
                 reject();
             }

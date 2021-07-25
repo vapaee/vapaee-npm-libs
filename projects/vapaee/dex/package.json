@@ -1,14 +1,8 @@
 {
-    "name": "@vapaee/dex",
-    "version": "2.4.4",
-    "peerDependencies": {
-        "ngx-cookie-service": "^2.1.0",
-        "rxjs": "^6.2.1",
-        "rxjs-compat": "^6.3.3",
-        "@vapaee/wallet": "1.0.0",    
-        "@vapaee/feedback": "1.1.1",
-        "bignumber.js": "8.0.2",
-        "@angular/common": "^6.0.0-rc.0 || ^6.0.0",
-        "@angular/core": "^6.0.0-rc.0 || ^6.0.0"
-    }
+  "name": "@vapaee/dex",
+  "version": "2.4.4",
+  "peerDependencies": {
+    "@angular/common": "^8.2.14",
+    "@angular/core": "^8.2.14"
+  }
 }

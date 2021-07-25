@@ -1,14 +1,8 @@
 {
-    "name": "@vapaee/idp-local",
-    "version": "0.1.8",
-    "peerDependencies": {
-        "rxjs": "^6.0.0",
-        "rxjs-compat": "^6.0.0",
-        "eosjs-api": "^7.0.4",
-        "eosjs-ecc": "^4.0.7",
-        "eosjs": "^20.0.0",
-        "crypto-js": "^4.0.0",
-        "@vapaee/wallet": "1.0.6",
-        "@vapaee/feedback": "1.1.0"
-    }
+  "name": "@vapaee/idp-local",
+  "version": "0.2.0",
+  "peerDependencies": {
+    "@angular/common": "^8.2.14",
+    "@angular/core": "^8.2.14"
+  }
 }

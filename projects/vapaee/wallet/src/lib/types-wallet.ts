@@ -11,7 +11,7 @@ export interface VapaeeIdentityProvider {
     // connexion with id provider
     
     getEosconf(): Eosconf;
-    getRPC(): RPC;
+    getRPC(): RPC | null;
     createRPC(eosconf: Eosconf):Promise<any>;
     connect(appname:string):Promise<any>;
 
@@ -26,11 +26,11 @@ export interface VapaeeIdentityProvider {
     logout():Promise<any>;
 
     readonly connected: boolean;
-    readonly account: Account;
+    readonly account: Account | null;
 
     onLogggedStateChange:Subject<boolean>;
 
-    print();
+    print(): void;
 }
 
 export interface VapaeeIdentityProviderClass {
@@ -126,6 +126,14 @@ export interface Scatter {
     suggestNetwork: Function
 }
 
+export interface ResourceLimit {
+    percent?: number;
+    percentStr?: string;
+    used?: number;
+    available?: number;
+    max?: number;
+}
+
 export interface AccountData {
     account_name?: string,
     head_block_num?: number,
@@ -142,24 +150,9 @@ export interface AccountData {
     total_balance_asset: Asset,
     total_staked: string,
     total_staked_asset: Asset,
-    ram_limit?: {
-        percentStr?: string,
-        used?: number,
-        available?: number,
-        max?: number
-    },
-    net_limit?: {
-        percentStr?: string,
-        used?: number,
-        available?: number,
-        max?: number
-    },
-    cpu_limit?: {
-        percentStr?: string,
-        used?: number,
-        available?: number,
-        max?: number
-    },
+    ram_limit?: ResourceLimit,
+    net_limit?: ResourceLimit,
+    cpu_limit?: ResourceLimit,
     ram_usage?: number,
     permissions?: {
         perm_name?: string,
@@ -233,7 +226,7 @@ export interface Endpoint {
     host:string,
     protocol?:string,
     port?:number,
-    ping_get_info?: number,
+    ping_get_info: number,
     disabled?: boolean
 }
 
@@ -307,12 +300,6 @@ export interface EndpointState {
     response: GetInfoResponse;
 }
 
-export interface Limit {
-    percent?:number;
-    max:number;
-    used: number;
-    percentStr?:string;
-}
 
 export interface VapaeeWalletConnexion {
     eosconf: Eosconf;
@@ -327,7 +314,7 @@ export interface VapaeeWalletConnexion {
     // waitEndpoints: Promise<any>; no porque esto es global y lo debe de llevar el service
 
     utils:ScatterUtils;
-    account: Account
+    account: Account | null;
     guest: Account
     symbol: string;
     appname: string;
@@ -360,7 +347,7 @@ export interface VapaeeWalletConnexion {
     calculateTotalBalance: (account:AccountData) => Asset;
     calculateTotalStaked: (account:AccountData) => Asset;
 
-    calculateResourceLimit(limit:Limit): Limit;
+    calculateResourceLimit(limit:ResourceLimit|undefined): ResourceLimit;
 
     queryAccountData: (name:string) => Promise<AccountData>;
     
@@ -374,10 +361,10 @@ export interface VapaeeWalletConnexion {
     authorization: {authorization:string[]};
     connected: boolean;
 
-    getTableRows: (contract, scope, table, tkey, lowerb, upperb, limit, ktype, ipos) => Promise<any>;
+    getTableRows: (contract: string, scope: string, table: string, tkey: string, lowerb: string, upperb: string, limit: number, ktype: string, ipos: string) => Promise<any>;
     isNative: (thing: Asset | Token) => boolean;
 
-    getRPC(): RPC;
+    getRPC(): RPC | null;
     createRPC(): Promise<RPC>
     getIdentityProvider():VapaeeIdentityProvider;
 }

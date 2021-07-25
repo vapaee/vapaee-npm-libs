@@ -6,8 +6,8 @@ import { DatePipe } from '@angular/common';
 import { TokenDEX, TokenData, TokenEvent } from './token-dex.class';
 import { AssetDEX } from './asset-dex.class';
 import { MarketMap, UserOrdersMap, MarketSummary, EventLog, Market, HistoryTx, TokenOrders, Order, UserOrders, OrderRow, HistoryBlock, DEXdata, MarketDeclaration } from './types-dex';
-import { VapaeeWallet, Account, AccountData, SmartContract, TableResult, TableParams, Asset, VapaeeWalletConnexion } from './extern';
-import { Feedback } from './extern';
+import { VapaeeWallet, Account, AccountData, SmartContract, TableResult, TableParams, Asset, VapaeeWalletConnexion } from '@vapaee/wallet';
+import { Feedback } from '@vapaee/feedback';
 import { VapaeeIdentityProviderClass } from '@vapaee/wallet';
 
 
@@ -171,7 +171,7 @@ export class VapaeeDEX {
         let timer;
         this.onMarketSummary.subscribe(summary => {
             clearTimeout(timer);
-            timer = setTimeout(_ => {
+            timer = setTimeout(() => {
                 this.updateTokensSummary();
                 this.updateTokensMarkets();
             }, 100);

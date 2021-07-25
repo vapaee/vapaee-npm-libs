@@ -35,9 +35,9 @@ export interface ChronoMap {
 };
 
 export class Feedback {
-    public loadings:BooleanMap;
-    public errors:StringMap;
-    public chrono:ChronoMap;
+    public loadings:BooleanMap|null = null;
+    public errors:StringMap|null = null;
+    public chrono:ChronoMap|null = null;
 
     constructor() {}
 
