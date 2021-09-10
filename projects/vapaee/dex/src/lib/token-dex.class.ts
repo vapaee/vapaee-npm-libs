@@ -1,7 +1,7 @@
 
 import { AssetDEX } from "./asset-dex.class";
 import { Market } from './types-dex';
-import { Token } from "./extern";
+import { Token } from '@vapaee/wallet';
 
 export interface TokenData {
     id:number,
@@ -22,34 +22,39 @@ export interface TokenEvent {
     new?: boolean
 }
 
+export interface TokenSummary {
+    volume: AssetDEX,
+    price: AssetDEX,
+    price_24h_ago: AssetDEX,
+    percent?:number,
+    percent_str?:string
+}
+
+export interface TokenStat {
+    supply: string,
+    max_supply: string,
+    issuer?: string
+}
+
+
 export class TokenDEX extends Token {
 
-    public title: string;
-    public website: string;
-    public icon: string;
-    public iconlg: string;
-    public tradeable: boolean | number;
-    public currency: boolean;
-    public offchain: boolean;
-    public table: string;
-    public data: TokenData[];
-    public brief: string;
-    public banner: string;
-    public admin: string;
+    public title: string                   = "";
+    public website: string                 = "";
+    public icon: string                    = "";
+    public iconlg: string                  = "";
+    public tradeable: boolean | number     = false;
+    public currency: boolean               = false;
+    public offchain: boolean               = false;
+    public table: string                   = "";
+    public data: TokenData[]               = [];
+    public brief: string                   = "";
+    public banner: string                  = "";
+    public admin: string                   = "";
 
-    stat?: {
-        supply: string,
-        max_supply: string,
-        issuer?: string
-    };
+    stat: TokenStat | null = null;
 
-    summary?: {
-        volume: AssetDEX,
-        price: AssetDEX,
-        price_24h_ago: AssetDEX,
-        percent?:number,
-        percent_str?:string
-    }
+    summary: TokenSummary | null = null;
     
     events: TokenEvent[] = [];
 

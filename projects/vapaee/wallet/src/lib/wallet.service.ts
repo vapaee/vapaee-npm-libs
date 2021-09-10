@@ -43,7 +43,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
     async createConnexion(slug:string, id_provider_class: VapaeeIdentityProviderClass): Promise<VapaeeWalletConnexion> {
         return this.doCreateConnexion(slug, id_provider_class);
     }
-    async getConnexion (net_slug:string): Promise<VapaeeWalletConnexion> {
+    async getConnexion (net_slug:string|null): Promise<VapaeeWalletConnexion> {
         return this.doGetConnexion(net_slug);
     }
     async resetIdentity (): Promise<void> {
@@ -69,10 +69,10 @@ export class VapaeeWallet implements VapaeeWalletInterface {
         console.log("VapaeeWallet.doInit("+path+")");
         this.doSubscribeToEvents();
         let networks: NetworkMap = await this.doFetchEndpoints(path);
-        for (var slug in networks) {
+        for (let slug in networks) {
             if (!networks[slug].disabled && networks[slug].chainId) {
                 console.log(" network: ", slug, "endpoints:", networks[slug].endpoints);
-                for (var i=0; i<networks[slug].endpoints.length; i++) {
+                for (let i=0; i<networks[slug].endpoints.length; i++) {
                     networks[slug].endpoints[i].port = networks[slug].endpoints[i].port || 443;
                     networks[slug].endpoints[i].protocol = networks[slug].endpoints[i].protocol || "https";
                 }
@@ -103,7 +103,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
 
     private async doCreateConnexion(slug:string, id_provider_class: VapaeeIdentityProviderClass): Promise<VapaeeWalletConnexion> {
         console.log("VapaeeWallet.doCreateConnexion("+slug+")");
-        var id_provider = new id_provider_class(slug, this);
+        let id_provider = new id_provider_class(slug, this);
         this.feed.setLoading("connexion");
         return new Promise<VapaeeWalletConnexion>(async (resolve, reject) => {
             setTimeout(() => {
@@ -136,7 +136,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
     }    
 
 
-    private async doGetConnexion (slug:string): Promise<VapaeeWalletConnexion> {
+    private async doGetConnexion (slug:string|null): Promise<VapaeeWalletConnexion> {
         console.debug("VapaeeWallet.getConnexion(",slug,")");
         return new Promise<VapaeeWalletConnexion>(async (resolve, reject) => {
             await this.waitEndpoints;
@@ -154,7 +154,7 @@ export class VapaeeWallet implements VapaeeWalletInterface {
             if (typeof con == "object") {
                 resolve(<VapaeeWalletConnexion>con);
             } else {
-                reject();
+                reject("Connexion not found for parameter '" + slug + "'");
             }
         });
     }

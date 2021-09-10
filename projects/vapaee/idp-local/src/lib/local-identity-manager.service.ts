@@ -46,6 +46,7 @@ export class VapaeeIdentityManagerService {
     private _connected: boolean = false;
     private wallet: VapaeeWalletInterface | null = null;
     private storage: ILocalStorage | null = null;
+    
     private eoskey: LocalEoskey | null = null;
 
     public onPasswordRequest: Subject<void> = new Subject<void>();
@@ -226,8 +227,7 @@ export class VapaeeIdentityManagerService {
         let wallet = this.wallet;
         await wallet.waitEndpoints;
         return new Promise<void>(resolve => {
-            let networks = wallet.getNetworkSugs();
-            from(networks).pipe(
+            from(wallet.getNetworkSugs()).pipe(
                 mergeMap( slug => this.createConnexion(slug))
             ).subscribe(slug => {
                 console.debug("VapaeeIdentityManagerService.createConnexions() Finished!", slug);
@@ -470,8 +470,6 @@ export class VapaeeIdentityManagerService {
         console.log("VapaeeIdentityManagerService.scanNetworksForAccounts(",identity,pubkey,")");
         // check wallet 
         if (!this.wallet) return new Observable(obs => obs.error("ERROR: wallet is null"));
-        
-        let networks = this.wallet.getNetworkSugs();
 
         // TEMP --------------------------------------------------------------------------------
         let endpoints:string[] = [];
@@ -627,6 +625,8 @@ export class VapaeeIdentityManagerService {
                                 let a = permisions[i];
                                 if (a.auth.keys[0].pubkey == pub) {
                                     this.keyaccounts[pub].push({
+                                        chainId: response.chain.chainid,
+                                        data: null,
                                         id: account_name + "@" + slug + ":" + a.perm,
                                         name: account_name,
                                         slug: slug,

@@ -1,12 +1,12 @@
 
 
 export class Token {
-    private _str?: string;
-    protected _symbol: string;
-    protected _precision?: number;
-    protected _contract?: string;
-    protected _chain?: string;
-    protected _id?: string;
+    private _str: string = "";
+    protected _symbol: string = "";
+    protected _precision: number = 0;
+    protected _contract: string = "";
+    protected _chain: string = "";
+    protected _id: string = "";
 
     public static getSymbol(id: string)    { return  id.split(":")[0];                 }
     public static getContract(id: string)  { return  id.split(":")[1].split("@")[0];   }
@@ -93,7 +93,7 @@ export class Token {
     }
 
     basecopy(): Token {
-        var cp = new Token(this);
+        let cp = new Token(this);
         cp._symbol = this._symbol;
         cp._precision = this._precision;
         cp._contract = this._contract;

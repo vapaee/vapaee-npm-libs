@@ -64,7 +64,7 @@ export class SmartContract {
             }
         }
 
-        var _p = Object.assign({
+        let _p = Object.assign({
             contract: this.contract, 
             scope: this.contract,
             table: table, 

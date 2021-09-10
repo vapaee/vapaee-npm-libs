@@ -23,6 +23,10 @@ export interface MarketDeclaration {
     currency: TokenDEX|string,
 }
 
+export interface HistoryBlockMap {
+    [id:string]:HistoryBlock
+}
+
 export interface Market extends MarketDeclaration {
     commodity: TokenDEX,
     currency: TokenDEX,
@@ -34,7 +38,7 @@ export interface Market extends MarketDeclaration {
     blocklist: any[][];
     reverselevels: any[][][];
     reverseblocks: any[][];
-    block: {[id:string]:HistoryBlock};
+    block: HistoryBlockMap;
     orders: TokenOrders;
     history: HistoryTx[];
     tx: {[id:string]:HistoryTx};
@@ -56,7 +60,7 @@ export interface MarketSummary {
     min_inverse?:AssetDEX,
     max_inverse?:AssetDEX,
     volume:AssetDEX,
-    amount?:AssetDEX,
+    amount:AssetDEX,
     percent?:number,
     percent_str?:string,
     ipercent?:number,
@@ -135,7 +139,7 @@ export interface UserOrders {
     market: string;
     table: string;
     ids: number[];
-    orders?:Order[];
+    orders:Order[];
 }
 
 export interface OrderRow {

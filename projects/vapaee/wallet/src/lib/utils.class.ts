@@ -204,15 +204,17 @@ export class ScatterUtils {
     // (end) ---------------------------------------------------
 
     // OLD eosjs encodeName solution ------------------------------------------------------
-    /*
+    
     charmap = '.12345abcdefghijklmnopqrstuvwxyz';
-    charidx = ch:string => {
+    
+    charidx(ch:string) {
         const idx = this.charmap.indexOf(ch)
         if(idx === -1)
           throw new TypeError(`Invalid character: '${ch}'`)
       
         return idx;
     }
+
     oldEosjsEncodeName(name: string, littleEndian = false) {
         if(typeof name !== 'string')
           throw new TypeError('name parameter is a required string')
@@ -259,6 +261,6 @@ export class ScatterUtils {
         let number = this.oldEosjsEncodeName(name);
         return new BigNumber(number);
     }
-    */
+    
 
 }

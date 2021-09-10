@@ -99,7 +99,7 @@ export interface EOS {
 export interface Scatter {
     identity: any,
     eosHook: Function;
-    eos?:Function,
+    eos:Function | null,
     network: any;
     // -----------------    
     forgotten?:boolean, // was forgetIdentity executed?    
@@ -208,13 +208,14 @@ export interface AccountData {
 }
 
 export interface Account {
-    authority?: string,
-    blockchain?: string,
-    slug?: string,
+    authority: string,
+    blockchain: string,
+    chainId: string;
+    slug: string,
     name: string,
-    publicKey?: string,
-    data?: AccountData,
-    id?: string,
+    publicKey: string,
+    data: AccountData  | null,
+    id: string,
 }
 
 export interface Identity {
@@ -256,11 +257,9 @@ export interface  ScatterIdentity {
 }
 
 export interface Network {
-    slug?: string,
-    disabled?: boolean,
-    // index?: number,
-    // eosconf?: Eosconf,
-    explorer?: string,
+    slug: string,
+    disabled: boolean,
+    explorer: string,
     symbol: string,
     name: string,
     chainId:string,
@@ -272,8 +271,8 @@ export interface NetworkMap {
 };
 
 export interface ScatterJSDef {
-    plugins?:any,
-    scatter?:any
+    plugins:any,
+    scatter:any
 }
 
 export interface GetInfoResponse {
@@ -307,10 +306,10 @@ export interface VapaeeWalletConnexion {
     onEndpointChange:Subject<EndpointState>;
     onLogggedStateChange:Subject<boolean>;
     // _account: Account;
-    waitReady: Promise<any>;
-    waitLogged: Promise<any>;
-    waitConnected: Promise<any>;
-    waitRPC: Promise<any>;
+    waitReady: Promise<void>;
+    waitLogged: Promise<void>;
+    waitConnected: Promise<void>;
+    waitRPC: Promise<void>;
     // waitEndpoints: Promise<any>; no porque esto es global y lo debe de llevar el service
 
     utils:ScatterUtils;

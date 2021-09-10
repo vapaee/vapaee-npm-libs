@@ -254,6 +254,11 @@
           "options": {
             "tsConfig": "projects/vapaee/idp-scatter/tsconfig.lib.json",
             "project": "projects/vapaee/idp-scatter/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "project": "projects/vapaee/idp-scatter/ng-package.prod.json"
+            }
           }
         },
         "test": {

@@ -1,5 +1,5 @@
-import { ScatterJS } from '@scatterjs/core';
-import { ScatterEOS } from '@scatterjs/eosjs2';
+import ScatterJS from '@scatterjs/core';
+import ScatterEOS from '@scatterjs/eosjs2';
 import { JsonRpc, Api } from 'eosjs';
 
 import { Subject } from 'rxjs';
@@ -10,24 +10,26 @@ import { Feedback } from '@vapaee/feedback';
 import { ScatterIdentity } from './types-scatter';
 
 export class ScatterIdProvider implements VapaeeIdentityProvider {
-
+    
     public feed: Feedback;
     public ScatterJS: any;
-    public scatter_network: ScatterJS.Network = ScatterJS.Network;
-    public rpc: JsonRpc | null = null;
-    public eosconf: Eosconf = {blockchain:"", protocol:"", host:"", port:0, chainId:""};
-    public eos: EOS | null = null;
-    public lib: ScatterJS.Scatter = ScatterJS.scatter;
+    public scatter_network: ScatterJS.Network;
+    public rpc: JsonRpc = null;
+    public eosconf: Eosconf;
+    public eos: EOS = null;
+    public lib: Scatter;
     
-    private _connected: boolean = false;
+    private _network: Network;
+    private _connected: boolean;
     get connected(): boolean {
         return this._connected;
     }
-    private _account: Account | null = null;
-    get account(): Account | null  {
+    private _account: Account;
+    get account(): Account {
         return this._account;
     }
-    
+
+
     onLogggedStateChange:Subject<boolean> = new Subject<boolean>();
 
     constructor(
@@ -42,7 +44,7 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
 
     // connexion with id provider
     getEosconf(): Eosconf { return this.eosconf; }
-    getRPC():RPC | null { return this.rpc; }
+    getRPC():RPC { return this.rpc; }
     async createRPC(eosconf: Eosconf):Promise<void> { return this.doCreateRPC(eosconf); }    
     async connect(appname:string):Promise<void> { return this.doConnect(appname); }
 
@@ -136,34 +138,30 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
     private async doSendTransaction(trx: Transaction):Promise<TransactionResult> {
         console.log("ScatterIdProvider.doSendTransaction()", trx);
         return new Promise<TransactionResult>(async (resolve, reject) => {
-            if (this.eos && this.account) {
-                let actions = [];
 
-                for (let i=0; i<trx.length; i++) {
-                    let action = trx[i];
-                    actions.push({
-                        account: action.contract,
-                        name: action.action,
-                        authorization: [{
-                            actor: this.account.name,
-                            permission: this.account.authority,
-                        }],
-                        data: action.payload
-                    });
-                }
+            let actions = [];
 
-                console.debug("ScatterIdProvider.doSendTransaction() actions: ", actions);
-            
-            
-                this.eos.transact({
-                    actions: actions
-                }, {
-                    blocksBehind: 3,
-                    expireSeconds: 30,
-                }).then(resolve).catch(reject)    
-            } else {
-                console.error("ERROR: this.eos is null ??", this);
+            for (let i=0; i<trx.length; i++) {
+                let action = trx[i];
+                actions.push({
+                    account: action.contract,
+                    name: action.action,
+                    authorization: [{
+                        actor: this.account.name,
+                        permission: this.account.authority,
+                    }],
+                    data: action.payload
+                });
             }
+
+            console.debug("ScatterIdProvider.doSendTransaction() actions: ", actions);
+            
+            this.eos.transact({
+                actions: actions
+            }, {
+                blocksBehind: 3,
+                expireSeconds: 30,
+            }).then(resolve).catch(reject)
         });            
     } 
 
@@ -171,12 +169,11 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
         console.log("ScatterIdProvider.doSetIdentity()", [identity]);
         console.assert(typeof this.lib == "object", "ERROR: no instance of ScatterJS.scatter found");
 
-        this.lib.identity = <ScatterJS.Identity>identity;
+        this.lib.identity = identity;
         this.lib.forgotten = false;
         let network:Network = this.wallet.getNetwork(this.slug);
-        this._account = <Account>this.lib.identity.accounts.find(x => x.chainId === network.chainId);
+        this._account = this.lib.identity.accounts.find(x => x.chainId === network.chainId);
         this.onLogggedStateChange.next(true);
-        return Promise.resolve();
     } 
 
     private async doResetIdentity():Promise<void> {
@@ -184,14 +181,13 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
         ScatterJS.forgetIdentity();
         delete this._account;
         this.onLogggedStateChange.next(false);
-        return Promise.resolve();
     } 
 
-    private async doAutologin(): Promise<void> {
+    private async doAutologin():Promise<void> {
         console.log("ScatterIdProvider.doAutologin()");
         console.debug(ScatterJS.scatter.identity);
-        if (!ScatterJS.scatter.identity) return Promise.resolve();
-        return this.setIdentity(<Identity>ScatterJS.scatter.identity);
+        if (!ScatterJS.scatter.identity) return null;
+        this.setIdentity(ScatterJS.scatter.identity);
     } 
 
     private async doLogin():Promise<Identity> {
@@ -199,16 +195,14 @@ export class ScatterIdProvider implements VapaeeIdentityProvider {
         
         return new Promise<Identity>(async (resolve, reject) => {
             let param = {accounts:[this.scatter_network]};
-            ScatterJS.login(param).then((_id:any) => {
-                let id: Identity = <Identity>_id;
+            ScatterJS.login(param).then((id:ScatterIdentity) => {
                 console.debug("ScatterIdProvider.login() ScatterJS.login(param) -> id:", id);
                 if(!id)  {
                     console.error('ScatterJS.login(param) returned no identity. param=', param);
-                    reject(false);
-                } else {
-                    this.setIdentity(<Identity>id);
-                    resolve(<Identity>id);    
+                    return reject(false);
                 }
+                this.setIdentity(<Identity>id);
+                resolve(<Identity>id);
             }).catch(e => {
                 // {"type":"identity_rejected","message":"User rejected the provision of an Identity","code":402,"isError":true}
                 console.error("ScatterIdProvider.login() --> ", JSON.stringify(e));

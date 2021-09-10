@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { TokenDEX } from './token-dex.class';
 
-import { Asset, Token } from './extern';
+import { Asset, Token } from '@vapaee/wallet';
 
 
 export interface IVapaeeDEX {
@@ -9,7 +9,7 @@ export interface IVapaeeDEX {
 }
 
 export class AssetDEX extends Asset {
-    amount:BigNumber;
+    amount:BigNumber = new BigNumber(0);
     
     constructor(a: any = null, b: any = null) {
         super(a,b);

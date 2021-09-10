@@ -68,7 +68,7 @@ export class Asset {
             console.assert(!!b.token, "ERROR: b has no token", b, this.str);
             console.assert(!!this.token, "ERROR: this has no token", b, this);
             console.assert(b.token.symbol == this.token.symbol, "ERROR: trying to sum assets with different tokens: " + this.str + " and " + b.str);
-            var amount = this.amount.plus(b.amount);
+            let amount = this.amount.plus(b.amount);
             return new Asset(amount, this.token);    
         }
         return this;
@@ -80,7 +80,7 @@ export class Asset {
             console.assert(!!b.token, "ERROR: b has no token", b, this.str);
             console.assert(!!this.token, "ERROR: this has no token", b, this);
             console.assert(b.token.symbol == this.token.symbol, "ERROR: trying to substract assets with different tokens: " + this.str + " and " + b.str);
-            var amount = this.amount.minus(b.amount);
+            let amount = this.amount.minus(b.amount);
             return new Asset(amount, this.token);
         }
         return this;
@@ -96,8 +96,8 @@ export class Asset {
 
     parse(text: string, precision:number = 0) {
         if (text == "") return;
-        var sym = text.split(" ")[1];
-        var amount_str = text.split(" ")[0];
+        let sym = text.split(" ")[1];
+        let amount_str = text.split(" ")[0];
         this.amount = new BigNumber(amount_str);
 
         if (precision == 0) {
@@ -118,10 +118,10 @@ export class Asset {
 
     valueToString(decimals:number = -1, total:boolean = false): string {
         if (!this.token) return "0";
-        var parts = this.amount.toFixed().split(".");
-        var integer = parts[0];
-        var precision = this.token.precision || 0;
-        var decimal = (parts.length==2 ? parts[1] : "");
+        let parts = this.amount.toFixed().split(".");
+        let integer = parts[0];
+        let precision = this.token.precision || 0;
+        let decimal = (parts.length==2 ? parts[1] : "");
         if (decimals != -1) {
             precision = decimals;
         }
@@ -129,7 +129,7 @@ export class Asset {
             precision -= parts[0].length-1;
             precision = precision > 0 ? precision : 0;
         }
-        for (var i=decimal.length; i<precision; i++) {
+        for (let i=decimal.length; i<precision; i++) {
             decimal += "0";
         }
         if (decimal.length > precision) {
@@ -158,8 +158,8 @@ export class Asset {
     }
 
     inverse(token: Token): Asset {
-        var result = new BigNumber(1).dividedBy(this.amount);
-        var asset =  new Asset(result, token);
+        let result = new BigNumber(1).dividedBy(this.amount);
+        let asset =  new Asset(result, token);
         return asset;
     }
 }

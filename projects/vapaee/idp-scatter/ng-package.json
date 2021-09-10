@@ -1,16 +1,14 @@
 {
   "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../../dist/vapaee/idp-scatter",
-  "deleteDestPath": false,
+  "dest": "../../../dist/vapaee/idp-local",
   "lib": {
-    "entryFile": "src/index.ts",
+    "entryFile": "index.ts",
     "umdModuleIds": {
-      "@scatterjs/core": "ScatterJS",
-      "bignumber.js": "BigNumber",
-      "@scatterjs/eosjs2": "ScatterEOS",
-      "long": "Long",
+      "eosjs-ecc": "ecc",
+      "crypto-js": "CryptoJS",
+      "eosjs/dist/eosjs-jssig": "eosjsJssig",
       "eosjs": "eosjs",
-      "@vapaee/feedback": "feedback"      
-    }    
+      "@vapaee/feedback": "vapaee.feedback"
+    }
   }
 }

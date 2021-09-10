@@ -60,7 +60,7 @@ export class Feedback {
         }        
     }
 
-    printChrono(key:string, lastMark:boolean = true) {
+    printChrono(key:string) {
         this.chrono = this.chrono || {};
         if (this.chrono[key]) {
             console.log("Chronometer marks for ", key);
@@ -96,9 +96,13 @@ export class Feedback {
         return this.errors[key];
     }
 
-    setError(key:string, err: string = "") {
+    setError(key:string, err: string | null) {
         this.errors = this.errors || {};
-        this.errors[key] = err;
+        if (err) {
+            this.errors[key] = err;
+        } else {
+            delete this.errors[key];
+        }
     }
 
     clearError(key:string) {

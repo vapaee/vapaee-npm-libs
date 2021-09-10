@@ -57,12 +57,7 @@ export class LocalEoskey  {
 
     register(pass: string) {
         console.log("LocalEoskey.register(",pass,")");
-        this.random = new Number(Math.random()*1000).toString();
-        
-        
-        this.random = "-random-";
-        
-        
+        this.random = new Number(Math.random()*1000000).toString();
         this.encrypted = this.encrypt(pass, this.random);
         this.storage.set(RANDOM, this.random);
         this.storage.set(ENCRYPTED, this.encrypted);
@@ -72,7 +67,6 @@ export class LocalEoskey  {
     }
 
     verify(pass: string): boolean {        
-        let encrypted = this.encrypt(pass, this.random);
         let random = this.decrypt(pass, this.encrypted);
         // console.debug("random:", random == this.random, "encrypted:", encrypted == this.encrypted, this.encrypted, encrypted);
         this.authentitated = (random == this.random);

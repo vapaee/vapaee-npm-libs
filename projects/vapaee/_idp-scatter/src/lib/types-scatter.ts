@@ -69,7 +69,6 @@ export interface  ScatterNetwork {
     token: string
 }
 
-// Copiado a projects/vapaee/idp-scatter/@types/scatterjs__core/index.d.ts
 export interface  ScatterIdentity {
     accounts: Account[],
     hash: string,
